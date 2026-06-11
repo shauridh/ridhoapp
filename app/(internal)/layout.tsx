@@ -20,6 +20,14 @@ export default async function InternalLayout({
     <div className="min-h-screen">
       <header className="flex items-center justify-between border-b px-4 py-3">
         <span className="font-semibold">POS Fried Chicken</span>
+        <nav className="flex gap-4 text-sm">
+          <a href="/pos" className="hover:underline">
+            Kasir
+          </a>
+          <a href="/settings/menu" className="hover:underline">
+            Menu
+          </a>
+        </nav>
         <form action={logout}>
           <button className="text-sm text-gray-600 underline">Keluar</button>
         </form>
