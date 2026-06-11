@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getProduct, listVariants } from "@/lib/data/products"
+import { getLatestRecipe } from "@/lib/data/recipes"
+import { listIngredients } from "@/lib/data/inventory"
 import { VariantForm } from "./variant-form"
+import { RecipeEditor } from "./recipe-editor"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -15,6 +18,8 @@ export default async function ProductDetailPage({
   if (!product) notFound()
 
   const variants = await listVariants(id)
+  const recipe = await getLatestRecipe(id)
+  const ingredients = await listIngredients()
 
   return (
     <div className="space-y-4">
@@ -58,6 +63,19 @@ export default async function ProductDetailPage({
             </li>
           )}
         </ul>
+      </Card>
+
+      <Card>
+        <RecipeEditor
+          productId={id}
+          ingredients={ingredients.map((i) => ({
+            id: i.id,
+            name: i.name,
+            unit: i.unit,
+          }))}
+          lines={recipe?.lines ?? []}
+          effectiveFrom={recipe?.effective_from ?? null}
+        />
       </Card>
     </div>
   )
