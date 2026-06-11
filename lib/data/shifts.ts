@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { calcExpectedCash } from "@/lib/domain/shift"
 
 export interface ShiftRow {
   id: string
@@ -38,4 +39,41 @@ export async function listRecentShifts(limit = 20): Promise<ShiftRow[]> {
 
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+export async function getShiftCashSummary(shift: ShiftRow) {
+  const supabase = await createClient()
+
+  const { data: cashOrders } = await supabase
+    .from("orders")
+    .select("total")
+    .eq("shift_id", shift.id)
+    .eq("payment_method", "cash")
+    .eq("status", "completed")
+  const cashSales = (cashOrders ?? []).reduce((sum, o) => sum + Number(o.total), 0)
+
+  const { data: qrisOrders } = await supabase
+    .from("orders")
+    .select("total")
+    .eq("shift_id", shift.id)
+    .eq("payment_method", "qris")
+    .eq("status", "completed")
+  const qrisTotal = (qrisOrders ?? []).reduce((sum, o) => sum + Number(o.total), 0)
+
+  const { data: cashOutRows } = await supabase
+    .from("cash_drawer_movements")
+    .select("amount")
+    .eq("shift_id", shift.id)
+    .eq("direction", "out")
+  const cashOut = (cashOutRows ?? []).reduce(
+    (sum, row) => sum + Number(row.amount),
+    0,
+  )
+
+  return {
+    cashSales,
+    qrisTotal,
+    cashOut,
+    expectedCash: calcExpectedCash(Number(shift.opening_balance), cashSales, cashOut),
+  }
 }
