@@ -1,18 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
+import {
+  Drumstick,
+  ShoppingCart,
+  UtensilsCrossed,
+  Package,
+  Receipt,
+  Wallet,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react"
 import { logout } from "@/lib/domain/auth"
 
 const links = [
-  { href: "/pos", label: "Kasir", icon: "🛒" },
-  { href: "/settings/menu", label: "Menu", icon: "📋" },
-  { href: "/inventory", label: "Stok", icon: "📦" },
-  { href: "/pos/shift", label: "Shift", icon: "🧾" },
-  { href: "/finance", label: "Keuangan", icon: "💰" },
+  { href: "/pos", label: "Kasir", icon: ShoppingCart },
+  { href: "/settings/menu", label: "Menu", icon: UtensilsCrossed },
+  { href: "/inventory", label: "Stok", icon: Package },
+  { href: "/pos/shift", label: "Shift", icon: Receipt },
+  { href: "/finance", label: "Keuangan", icon: Wallet },
 ]
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const saved = localStorage.getItem("sabana.sidebar")
@@ -29,35 +42,45 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex flex-col bg-brand text-white transition-all ${
-        collapsed ? "w-14" : "w-48"
+      className={`hidden flex-col bg-brand text-white shadow-lg transition-all md:flex ${
+        collapsed ? "w-16" : "w-52"
       }`}
     >
       <div className="flex items-center justify-between p-3">
-        {!collapsed && <span className="font-bold">🍗 Sabana</span>}
+        {!collapsed && (
+          <span className="flex items-center gap-2 font-bold">
+            <Drumstick size={20} /> Sabana
+          </span>
+        )}
         <button
           onClick={toggle}
-          className="text-xl leading-none"
+          className="text-white/90"
           aria-label="Buka tutup menu samping"
         >
-          {collapsed ? "»" : "«"}
+          {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
         </button>
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-2">
-        {links.map((l) => (
-          <a
-            key={l.href}
-            href={l.href}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/15"
-          >
-            <span>{l.icon}</span>
-            {!collapsed && <span>{l.label}</span>}
-          </a>
-        ))}
+        {links.map((l) => {
+          const active = pathname === l.href || pathname.startsWith(l.href + "/")
+          const Icon = l.icon
+          return (
+            <a
+              key={l.href}
+              href={l.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                active ? "bg-white/20 font-semibold" : "hover:bg-white/10"
+              }`}
+            >
+              <Icon size={20} />
+              {!collapsed && <span>{l.label}</span>}
+            </a>
+          )
+        })}
       </nav>
       <form action={logout} className="p-2">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/15">
-          <span>🚪</span>
+        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/10">
+          <LogOut size={20} />
           {!collapsed && <span>Keluar</span>}
         </button>
       </form>
