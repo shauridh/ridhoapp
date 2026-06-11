@@ -5,6 +5,8 @@ import {
 } from "@/lib/data/shifts"
 import { CloseForm } from "./close-form"
 import { OpenForm } from "./open-form"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 export default async function ShiftPage() {
   const openShift = await getCurrentOpenShift()
@@ -13,27 +15,27 @@ export default async function ShiftPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Shift Kasir</h1>
+      <h1 className="text-xl font-bold text-ink">Shift Kasir</h1>
 
       {!openShift && <OpenForm />}
       {openShift && (
         <div className="space-y-3">
-          <div className="rounded-lg border p-4">
-            <p className="text-sm text-gray-600">Shift sedang buka</p>
-            <p className="font-medium">
+          <Card>
+            <p className="text-sm text-ink-soft">Shift sedang buka</p>
+            <p className="font-medium text-ink">
               Dibuka: {new Date(openShift.opened_at).toLocaleString("id-ID")}
             </p>
-            <p>
+            <p className="text-ink">
               Saldo awal: Rp {openShift.opening_balance.toLocaleString("id-ID")}
             </p>
             {summary && (
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-2 text-sm text-ink-soft">
                 <p>Tunai: Rp {summary.cashSales.toLocaleString("id-ID")}</p>
                 <p>QRIS: Rp {summary.qrisTotal.toLocaleString("id-ID")}</p>
                 <p>Cash out: Rp {summary.cashOut.toLocaleString("id-ID")}</p>
               </div>
             )}
-          </div>
+          </Card>
           <CloseForm
             shift={{ id: openShift.id, expected_cash: summary?.expectedCash ?? 0 }}
           />
@@ -41,30 +43,28 @@ export default async function ShiftPage() {
       )}
 
       <div>
-        <h2 className="mb-2 font-medium">Riwayat Shift</h2>
+        <h2 className="mb-2 font-medium text-ink">Riwayat Shift</h2>
         <div className="space-y-2">
           {recentShifts.map((s) => (
-            <div key={s.id} className="rounded-lg border p-2 text-sm">
+            <Card key={s.id} className="text-sm">
               <div className="flex justify-between">
-                <span>{new Date(s.opened_at).toLocaleDateString("id-ID")}</span>
-                <span
-                  className={
-                    s.status === "open" ? "text-green-600" : "text-gray-500"
-                  }
-                >
+                <span className="text-ink">{new Date(s.opened_at).toLocaleDateString("id-ID")}</span>
+                <Badge tone={s.status === "open" ? "success" : "neutral"}>
                   {s.status === "open" ? "Terbuka" : "Tutup"}
-                </span>
+                </Badge>
               </div>
               {s.status === "closed" && s.cash_difference !== null && (
-                <div className="text-xs text-gray-600">
+                <div
+                  className={`text-xs ${s.cash_difference >= 0 ? "text-success" : "text-danger"}`}
+                >
                   Selisih: Rp {Math.abs(s.cash_difference).toLocaleString("id-ID")}
                   {s.cash_difference >= 0 ? " (lebih)" : " (kurang)"}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
           {recentShifts.length === 0 && (
-            <p className="text-sm text-gray-500">Belum ada riwayat shift.</p>
+            <p className="text-sm text-ink-soft">Belum ada riwayat shift.</p>
           )}
         </div>
       </div>

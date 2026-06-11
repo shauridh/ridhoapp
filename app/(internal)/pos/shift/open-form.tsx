@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from "react"
 import { openShift } from "./actions"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export function OpenForm() {
   const [balance, setBalance] = useState("50000")
@@ -18,27 +21,20 @@ export function OpenForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border p-4">
-      <h3 className="font-semibold">Buka Shift</h3>
-      <div>
-        <label className="text-sm text-gray-600">
-          Saldo Awal (modal kembalian)
-        </label>
-        <input
+    <Card>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <h3 className="font-semibold text-ink">Buka Shift</h3>
+        <Input
           type="number"
+          label="Saldo Awal (modal kembalian)"
           value={balance}
           onChange={(e) => setBalance(e.target.value)}
-          className="w-full rounded border px-3 py-2"
         />
-      </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-lg bg-black py-2 text-white disabled:opacity-50"
-      >
-        {pending ? "Membuka..." : "Buka Shift"}
-      </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </form>
+        <Button type="submit" variant="primary" loading={pending} className="w-full">
+          Buka Shift
+        </Button>
+        {error && <p className="text-sm text-danger">{error}</p>}
+      </form>
+    </Card>
   )
 }
