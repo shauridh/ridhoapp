@@ -27,6 +27,9 @@ export default async function InternalLayout({
           <a href="/settings/menu" className="hover:underline">
             Menu
           </a>
+          <a href="/inventory" className="hover:underline">
+            Stok
+          </a>
         </nav>
         <form action={logout}>
           <button className="text-sm text-gray-600 underline">Keluar</button>
