@@ -6,6 +6,7 @@ export interface ProductRow {
   type: "single" | "combo"
   base_price: number
   category: string
+  image_url: string | null
   is_active: boolean
   created_at: string
 }
