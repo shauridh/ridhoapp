@@ -3,13 +3,13 @@
 import type { Cart } from "@/lib/domain/cart"
 import { cartTotal } from "@/lib/domain/cart"
 import { Button } from "@/components/ui/button"
-import { Banknote, QrCode } from "lucide-react"
+import { CreditCard } from "lucide-react"
 
 interface Props {
   cart: Cart
   onUpdateQty: (index: number, qty: number) => void
   onRemove: (index: number) => void
-  onCheckout: (method: "cash" | "qris") => void
+  onPay: () => void
   disabled: boolean
 }
 
@@ -17,7 +17,7 @@ export function CartView({
   cart,
   onUpdateQty,
   onRemove,
-  onCheckout,
+  onPay,
   disabled,
 }: Props) {
   return (
@@ -84,24 +84,15 @@ export function CartView({
           <span>Total</span>
           <span>Rp {cartTotal(cart).toLocaleString("id-ID")}</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <Button
-            variant="success"
+            variant="primary"
             size="lg"
-            icon={Banknote}
-            onClick={() => onCheckout("cash")}
+            icon={CreditCard}
+            onClick={onPay}
             disabled={disabled || cart.length === 0}
           >
-            Tunai
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            icon={QrCode}
-            onClick={() => onCheckout("qris")}
-            disabled={disabled || cart.length === 0}
-          >
-            QRIS
+            Bayar
           </Button>
         </div>
       </div>

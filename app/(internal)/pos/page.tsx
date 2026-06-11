@@ -12,6 +12,7 @@ import { checkout } from "./actions"
 import { ProductGrid } from "./product-grid"
 import { CartView } from "./cart"
 import { VariantPicker } from "./variant-picker"
+import { PaymentModal } from "./payment-modal"
 import { Receipt } from "./receipt"
 import { OrderHistory } from "./order-history"
 
@@ -21,6 +22,8 @@ interface ReceiptState {
   payment_method: string
   created_at: string
   items: { name: string; qty: number; price: number }[]
+  paid?: number
+  change?: number
 }
 
 export default function PosPage() {
@@ -31,6 +34,7 @@ export default function PosPage() {
   const [loading, setLoading] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [cols, setCols] = useState<GridSetting>("auto")
+  const [showPayment, setShowPayment] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
@@ -95,7 +99,11 @@ export default function PosPage() {
     setPendingProduct(null)
   }
 
-  const handleCheckout = async (method: "cash" | "qris") => {
+  const handleCheckout = async (
+    method: "cash" | "qris",
+    paid: number,
+    change: number,
+  ) => {
     if (cart.length === 0) return
     setLoading(true)
     try {
@@ -118,6 +126,8 @@ export default function PosPage() {
         toast.show("Transaksi berhasil", "success")
         setReceipt({
           ...result.order,
+          paid,
+          change,
           items: cart.map((item) => ({
             name: item.name,
             qty: item.qty,
@@ -127,6 +137,7 @@ export default function PosPage() {
           })),
         })
         setCart(createCart())
+        setShowPayment(false)
       } else {
         toast.show(result.error, "error")
       }
@@ -151,7 +162,7 @@ export default function PosPage() {
           cart={cart}
           onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
           onRemove={(i) => setCart((prev) => removeItem(prev, i))}
-          onCheckout={handleCheckout}
+          onPay={() => setShowPayment(true)}
           disabled={loading}
         />
         <div className="mt-4">
@@ -168,10 +179,21 @@ export default function PosPage() {
         />
       )}
 
+      {showPayment && (
+        <PaymentModal
+          total={cartTotal(cart)}
+          loading={loading}
+          onConfirm={handleCheckout}
+          onClose={() => setShowPayment(false)}
+        />
+      )}
+
       {receipt && (
         <Receipt
           order={receipt}
           items={receipt.items ?? []}
+          paid={receipt.paid}
+          change={receipt.change}
           onClose={() => setReceipt(null)}
         />
       )}
