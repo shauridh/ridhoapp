@@ -35,7 +35,7 @@ export function ProductGrid({ products, onSelect, cols, onColsChange }: Props) {
           <button
             key={p.id}
             onClick={() => onSelect(p)}
-            className="overflow-hidden rounded-xl bg-white text-center shadow-sm transition hover:shadow-md active:scale-[0.98]"
+            className="overflow-hidden rounded-2xl border border-hairline bg-white text-center shadow-sm transition hover:shadow-lg active:scale-[0.97]"
           >
             <div className="aspect-square bg-surface">
               {p.image_url ? (

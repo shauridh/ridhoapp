@@ -3,6 +3,7 @@
 import type { Cart } from "@/lib/domain/cart"
 import { cartTotal } from "@/lib/domain/cart"
 import { Button } from "@/components/ui/button"
+import { Banknote, QrCode } from "lucide-react"
 
 interface Props {
   cart: Cart
@@ -87,6 +88,7 @@ export function CartView({
           <Button
             variant="success"
             size="lg"
+            icon={Banknote}
             onClick={() => onCheckout("cash")}
             disabled={disabled || cart.length === 0}
           >
@@ -95,6 +97,7 @@ export function CartView({
           <Button
             variant="secondary"
             size="lg"
+            icon={QrCode}
             onClick={() => onCheckout("qris")}
             disabled={disabled || cart.length === 0}
           >

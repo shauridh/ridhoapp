@@ -1,6 +1,8 @@
 import { listCashflowCategories, listCashflowEntries, getCashflowSummary } from "@/lib/data/cashflow"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatCard } from "@/components/ui/stat-card"
+import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
 import { ManualEntryForm } from "./manual-entry-form"
 
 const TODAY = new Date()
@@ -25,30 +27,30 @@ export default async function FinancePage() {
       <h1 className="text-xl font-bold text-ink">Keuangan & Laporan</h1>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <Card>
-          <div className="text-sm text-ink-soft">Pemasukan</div>
-          <div className="text-2xl font-bold text-success">
-            Rp {summary.totalIncome.toLocaleString("id-ID")}
-          </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-ink-soft">Pengeluaran (OpEx)</div>
-          <div className="text-2xl font-bold text-danger">
-            Rp {summary.totalOpex.toLocaleString("id-ID")}
-          </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-ink-soft">Laba Kotor</div>
-          <div className="text-2xl font-bold text-ink">
-            Rp {summary.grossProfit.toLocaleString("id-ID")}
-          </div>
-        </Card>
-        <Card>
-          <div className="text-sm text-ink-soft">Belanja Modal</div>
-          <div className="text-2xl font-bold text-ink">
-            Rp {summary.totalCapex.toLocaleString("id-ID")}
-          </div>
-        </Card>
+        <StatCard
+          label="Pemasukan"
+          tone="green"
+          icon={TrendingUp}
+          value={`Rp ${summary.totalIncome.toLocaleString("id-ID")}`}
+        />
+        <StatCard
+          label="Pengeluaran (OpEx)"
+          tone="red"
+          icon={Receipt}
+          value={`Rp ${summary.totalOpex.toLocaleString("id-ID")}`}
+        />
+        <StatCard
+          label="Laba Kotor"
+          tone="amber"
+          icon={BarChart3}
+          value={`Rp ${summary.grossProfit.toLocaleString("id-ID")}`}
+        />
+        <StatCard
+          label="Belanja Modal"
+          tone="blue"
+          icon={Wallet}
+          value={`Rp ${summary.totalCapex.toLocaleString("id-ID")}`}
+        />
       </div>
 
       <ManualEntryForm categories={categories} />
