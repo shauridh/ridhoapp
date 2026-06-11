@@ -1,9 +1,11 @@
 import { listCashflowCategories, listCashflowEntries, getCashflowSummary } from "@/lib/data/cashflow"
+import { listAkun, listOpex, listPiutang } from "@/lib/data/akun"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
 import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
 import { ManualEntryForm } from "./manual-entry-form"
+import { KeuanganManager } from "./keuangan-manager"
 
 const TODAY = new Date()
 const START_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1).toISOString().slice(0, 10)
@@ -21,6 +23,9 @@ export default async function FinancePage() {
   const categories = await listCashflowCategories()
   const entries = await listCashflowEntries(START_OF_MONTH, END_OF_MONTH)
   const summary = await getCashflowSummary(START_OF_MONTH, END_OF_MONTH)
+  const akun = await listAkun()
+  const opex = await listOpex()
+  const piutang = await listPiutang()
 
   return (
     <div className="space-y-4">
@@ -54,6 +59,8 @@ export default async function FinancePage() {
       </div>
 
       <ManualEntryForm categories={categories} />
+
+      <KeuanganManager akun={akun} opex={opex} piutang={piutang} />
 
       <div>
         <h2 className="mb-2 font-medium text-ink">Arus Kas Bulan Ini</h2>
