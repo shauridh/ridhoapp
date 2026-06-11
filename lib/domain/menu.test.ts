@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { validateProductInput, type ProductInput } from "./menu"
+import { validateProductInput, calcLinePrice, type ProductInput } from "./menu"
 
 describe("validateProductInput", () => {
   it("menerima produk single yang valid", () => {
@@ -34,5 +34,19 @@ describe("validateProductInput", () => {
     const result = validateProductInput(input)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toMatch(/harga/i)
+  })
+})
+
+describe("calcLinePrice", () => {
+  it("menghitung harga dasar tanpa varian", () => {
+    expect(calcLinePrice(12000, [])).toBe(12000)
+  })
+
+  it("menambahkan price_delta dari varian terpilih", () => {
+    expect(calcLinePrice(12000, [2000, 5000])).toBe(19000)
+  })
+
+  it("mengabaikan delta negatif tidak wajar dengan tetap menjumlahkan", () => {
+    expect(calcLinePrice(12000, [-2000])).toBe(10000)
   })
 })

@@ -18,3 +18,7 @@ export function validateProductInput(input: ProductInput): ValidationResult {
   }
   return { ok: true }
 }
+
+export function calcLinePrice(basePrice: number, variantDeltas: number[]): number {
+  return variantDeltas.reduce((sum, delta) => sum + delta, basePrice)
+}
