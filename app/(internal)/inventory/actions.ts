@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { calcOpnameDelta, parseBulkIngredients } from "@/lib/domain/opname"
 
 export async function addIngredient(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim()
@@ -88,4 +89,51 @@ export async function adjustStock(formData: FormData) {
     return { ok: false as const, error: "Pilih bahan dan selisih bukan 0" }
   }
   return applyMovement(ingredientId, delta, reason, note)
+}
+
+// Stok opname: kasir hitung fisik, sistem hitung selisih & catat sebagai adjustment.
+export async function stockOpname(formData: FormData) {
+  const ingredientId = String(formData.get("ingredientId") ?? "")
+  const physicalQty = Number(formData.get("physicalQty") ?? 0)
+  if (!ingredientId) {
+    return { ok: false as const, error: "Pilih bahan" }
+  }
+
+  const supabase = await createClient()
+  const { data: ing, error: readErr } = await supabase
+    .from("ingredients")
+    .select("stock_qty")
+    .eq("id", ingredientId)
+    .single()
+  if (readErr) return { ok: false as const, error: readErr.message }
+
+  const delta = calcOpnameDelta(Number(ing.stock_qty), physicalQty)
+  if (delta === 0) {
+    return { ok: true as const }
+  }
+  return applyMovement(ingredientId, delta, "adjustment", "Stok opname")
+}
+
+// Bulk import bahan dari teks CSV.
+export async function bulkImportIngredients(text: string) {
+  const rows = parseBulkIngredients(text)
+  if (rows.length === 0) {
+    return { ok: false as const, error: "Tidak ada baris valid" }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from("ingredients").insert(
+    rows.map((r) => ({
+      name: r.name,
+      unit: r.unit,
+      purchase_unit: r.purchaseUnit,
+      purchase_unit_qty: r.purchaseUnitQty,
+      low_stock_threshold: r.lowStockThreshold,
+      tracking_type: "ingredient" as const,
+    })),
+  )
+  if (error) return { ok: false as const, error: error.message }
+
+  revalidatePath("/inventory")
+  return { ok: true as const, count: rows.length }
 }

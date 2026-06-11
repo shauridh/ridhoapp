@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { IngredientForm } from "./ingredient-form"
 import { StockActionsForm } from "./stock-actions-form"
+import { OpnameBulkForms } from "./opname-bulk-forms"
 
 const WINDOW_DAYS = 7
 
@@ -25,6 +26,7 @@ export default async function InventoryPage() {
 
       <IngredientForm />
       <StockActionsForm ingredients={ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))} />
+      <OpnameBulkForms ingredients={ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))} />
 
       <Card className="overflow-x-auto p-0">
         <table className="w-full border-collapse text-sm">
