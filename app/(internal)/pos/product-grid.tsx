@@ -1,44 +1,70 @@
 "use client"
 
 import type { ProductRow } from "@/lib/data/products"
+import { gridStyle, type GridSetting } from "@/lib/domain/grid"
 
 interface Props {
   products: ProductRow[]
   onSelect: (product: ProductRow) => void
+  cols: GridSetting
+  onColsChange: (cols: GridSetting) => void
 }
 
-export function ProductGrid({ products, onSelect }: Props) {
-  const grouped = products.reduce<Record<string, ProductRow[]>>((acc, p) => {
-    const cat = p.category || "Lainnya"
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(p)
-    return acc
-  }, {})
+const options: GridSetting[] = ["auto", 3, 4, 5]
 
+export function ProductGrid({ products, onSelect, cols, onColsChange }: Props) {
   return (
     <div className="space-y-3">
-      {Object.entries(grouped).map(([category, items]) => (
-        <div key={category}>
-          <h3 className="mb-1 text-sm font-medium text-gray-600">{category}</h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                className="rounded-lg border p-3 text-left hover:bg-gray-50 active:bg-gray-100"
-              >
-                <div className="font-medium">{p.name}</div>
-                <div className="text-sm text-gray-600">
-                  Rp {p.base_price.toLocaleString("id-ID")}
+      <div className="flex gap-2">
+        {options.map((o) => (
+          <button
+            key={String(o)}
+            onClick={() => onColsChange(o)}
+            className={`rounded-full px-3 py-1 text-sm font-semibold ${
+              cols === o
+                ? "bg-brand text-white"
+                : "bg-white text-ink border border-hairline"
+            }`}
+          >
+            {o === "auto" ? "Auto" : `${o} kolom`}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-3" style={gridStyle(cols)}>
+        {products.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => onSelect(p)}
+            className="overflow-hidden rounded-xl bg-white text-center shadow-sm transition hover:shadow-md active:scale-[0.98]"
+          >
+            <div className="aspect-square bg-surface">
+              {p.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.image_url}
+                  alt={p.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-3xl">
+                  🍗
                 </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-      {products.length === 0 && (
-        <p className="py-8 text-center text-gray-500">Belum ada produk aktif.</p>
-      )}
+              )}
+            </div>
+            <div className="p-2">
+              <div className="text-sm font-bold text-ink">{p.name}</div>
+              <div className="text-sm font-bold text-brand">
+                Rp {p.base_price.toLocaleString("id-ID")}
+              </div>
+            </div>
+          </button>
+        ))}
+        {products.length === 0 && (
+          <p className="col-span-full py-8 text-center text-ink-soft">
+            Belum ada produk aktif.
+          </p>
+        )}
+      </div>
     </div>
   )
 }

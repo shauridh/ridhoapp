@@ -156,3 +156,113 @@ export async function checkout(payload: CheckoutPayload) {
   revalidatePath("/pos")
   return { ok: true as const, order: fullOrder }
 }
+
+export async function voidOrder(orderId: string, reason: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+  if (!reason.trim()) return { ok: false as const, error: "Alasan wajib diisi" }
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single()
+  if (!order) return { ok: false as const, error: "Order tidak ditemukan" }
+  if (order.status === "voided") {
+    return { ok: false as const, error: "Order sudah dibatalkan" }
+  }
+
+  const { data: items } = await supabase
+    .from("order_items")
+    .select("product_id, qty")
+    .eq("order_id", orderId)
+
+  const { error: updErr } = await supabase
+    .from("orders")
+    .update({ status: "voided", void_reason: reason })
+    .eq("id", orderId)
+  if (updErr) return { ok: false as const, error: updErr.message }
+
+  const now = new Date().toISOString().slice(0, 10)
+  const productQtyMap = new Map<string, number>()
+  for (const item of items ?? []) {
+    productQtyMap.set(
+      item.product_id,
+      (productQtyMap.get(item.product_id) ?? 0) + item.qty,
+    )
+  }
+
+  for (const [productId, totalQty] of productQtyMap) {
+    const { data: recipes } = await supabase
+      .from("recipes")
+      .select("id, effective_from")
+      .eq("product_id", productId)
+    if (!recipes || recipes.length === 0) continue
+
+    const activeRecipe = selectActiveRecipe(
+      recipes.map((r) => ({
+        id: r.id,
+        effectiveFrom: r.effective_from,
+        lines: [] as { ingredientId: string; qtyUsed: number }[],
+      })),
+      now,
+    )
+    if (!activeRecipe) continue
+
+    const { data: lines } = await supabase
+      .from("recipe_lines")
+      .select("ingredient_id, qty_used")
+      .eq("recipe_id", activeRecipe.id)
+    if (!lines || lines.length === 0) continue
+
+    const recipeWithLines: RecipeVersion = {
+      id: activeRecipe.id,
+      effectiveFrom: activeRecipe.effectiveFrom,
+      lines: lines.map((l) => ({
+        ingredientId: l.ingredient_id,
+        qtyUsed: l.qty_used,
+      })),
+    }
+
+    const deductions = calcStockDeductions(recipeWithLines, totalQty)
+    for (const d of deductions) {
+      const { data: ing } = await supabase
+        .from("ingredients")
+        .select("stock_qty")
+        .eq("id", d.ingredientId)
+        .single()
+      if (!ing) continue
+
+      const restore = Math.abs(d.changeQty)
+      await supabase.from("stock_movements").insert({
+        ingredient_id: d.ingredientId,
+        change_qty: restore,
+        reason: "adjustment",
+        ref_id: orderId,
+        note: `Void order: ${reason}`,
+        created_by: user.id,
+      })
+
+      const newQty = Number(ing.stock_qty) + restore
+      await supabase
+        .from("ingredients")
+        .update({ stock_qty: newQty })
+        .eq("id", d.ingredientId)
+    }
+  }
+
+  await supabase.from("order_edits").insert({
+    order_id: orderId,
+    edited_by: user.id,
+    action: "void",
+    reason,
+    before_snapshot: { order, items },
+    after_snapshot: { status: "voided" },
+  })
+
+  revalidatePath("/pos")
+  return { ok: true as const }
+}

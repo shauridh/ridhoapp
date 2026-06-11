@@ -6,11 +6,22 @@ import type { VariantRow } from "@/lib/data/products"
 import { createClient } from "@/lib/supabase/client"
 import { createCart, addItem, removeItem, updateQty, cartTotal } from "@/lib/domain/cart"
 import type { Cart, CartVariant } from "@/lib/domain/cart"
+import type { GridSetting } from "@/lib/domain/grid"
+import { useToast } from "@/components/ui/toast"
 import { checkout } from "./actions"
 import { ProductGrid } from "./product-grid"
 import { CartView } from "./cart"
 import { VariantPicker } from "./variant-picker"
 import { Receipt } from "./receipt"
+import { OrderHistory } from "./order-history"
+
+interface ReceiptState {
+  id: string
+  total: number
+  payment_method: string
+  created_at: string
+  items: { name: string; qty: number; price: number }[]
+}
 
 export default function PosPage() {
   const [cart, setCart] = useState<Cart>(createCart())
@@ -18,7 +29,9 @@ export default function PosPage() {
   const [variants, setVariants] = useState<Record<string, VariantRow[]>>({})
   const [pendingProduct, setPendingProduct] = useState<ProductRow | null>(null)
   const [loading, setLoading] = useState(false)
-  const [receipt, setReceipt] = useState<any>(null)
+  const [receipt, setReceipt] = useState<ReceiptState | null>(null)
+  const [cols, setCols] = useState<GridSetting>("auto")
+  const toast = useToast()
 
   useEffect(() => {
     const supabase = createClient()
@@ -29,6 +42,20 @@ export default function PosPage() {
       .order("name")
       .then(({ data }) => setProducts(data ?? []))
   }, [])
+
+  useEffect(() => {
+    const saved = localStorage.getItem("pos.gridCols")
+    if (saved === "3" || saved === "4" || saved === "5") {
+      setCols(Number(saved) as GridSetting)
+    } else if (saved === "auto") {
+      setCols("auto")
+    }
+  }, [])
+
+  const changeCols = (c: GridSetting) => {
+    setCols(c)
+    localStorage.setItem("pos.gridCols", String(c))
+  }
 
   const handleSelectProduct = async (product: ProductRow) => {
     const supabase = createClient()
@@ -88,6 +115,7 @@ export default function PosPage() {
         paymentMethod: method,
       })
       if (result.ok) {
+        toast.show("Transaksi berhasil", "success")
         setReceipt({
           ...result.order,
           items: cart.map((item) => ({
@@ -100,7 +128,7 @@ export default function PosPage() {
         })
         setCart(createCart())
       } else {
-        alert(result.error)
+        toast.show(result.error, "error")
       }
     } finally {
       setLoading(false)
@@ -110,10 +138,15 @@ export default function PosPage() {
   return (
     <div className="flex h-[calc(100vh-52px)] gap-4">
       <div className="flex-1 overflow-y-auto pr-4">
-        <ProductGrid products={products} onSelect={handleSelectProduct} />
+        <ProductGrid
+          products={products}
+          onSelect={handleSelectProduct}
+          cols={cols}
+          onColsChange={changeCols}
+        />
       </div>
 
-      <div className="w-80 border-l pl-4">
+      <div className="flex w-80 flex-col border-l border-hairline pl-4">
         <CartView
           cart={cart}
           onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
@@ -121,6 +154,9 @@ export default function PosPage() {
           onCheckout={handleCheckout}
           disabled={loading}
         />
+        <div className="mt-4">
+          <OrderHistory />
+        </div>
       </div>
 
       {pendingProduct && (

@@ -1,7 +1,8 @@
 "use client"
 
-import type { Cart, CartItem } from "@/lib/domain/cart"
+import type { Cart } from "@/lib/domain/cart"
 import { cartTotal } from "@/lib/domain/cart"
+import { Button } from "@/components/ui/button"
 
 interface Props {
   cart: Cart
@@ -20,10 +21,10 @@ export function CartView({
 }: Props) {
   return (
     <div className="flex h-full flex-col">
-      <h2 className="mb-2 font-semibold">Keranjang</h2>
+      <h2 className="mb-2 font-semibold text-ink">Keranjang</h2>
       <div className="flex-1 space-y-2 overflow-y-auto">
         {cart.length === 0 && (
-          <p className="py-4 text-center text-sm text-gray-500">
+          <p className="py-4 text-center text-sm text-ink-soft">
             Belum ada item.
           </p>
         )}
@@ -35,19 +36,20 @@ export function CartView({
           return (
             <div
               key={idx}
-              className="rounded-lg border p-2 text-sm"
+              className="rounded-lg border border-hairline bg-white p-2 text-sm"
             >
               <div className="flex justify-between">
-                <span className="font-medium">{item.name}</span>
+                <span className="font-medium text-ink">{item.name}</span>
                 <button
                   onClick={() => onRemove(idx)}
-                  className="text-red-500"
+                  className="text-danger"
+                  aria-label="Hapus item"
                 >
-                  x
+                  ✕
                 </button>
               </div>
               {item.variants.length > 0 && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-ink-soft">
                   {item.variants.map((v) => v.name).join(", ")}
                 </div>
               )}
@@ -55,19 +57,19 @@ export function CartView({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onUpdateQty(idx, item.qty - 1)}
-                    className="w-6 rounded border text-center"
+                    className="h-8 w-8 rounded-lg border border-hairline text-center text-ink"
                   >
-                    -
+                    −
                   </button>
-                  <span>{item.qty}</span>
+                  <span className="font-semibold text-ink">{item.qty}</span>
                   <button
                     onClick={() => onUpdateQty(idx, item.qty + 1)}
-                    className="w-6 rounded border text-center"
+                    className="h-8 w-8 rounded-lg border border-hairline text-center text-ink"
                   >
                     +
                   </button>
                 </div>
-                <span className="font-medium">
+                <span className="font-semibold text-ink">
                   Rp {lineTotal.toLocaleString("id-ID")}
                 </span>
               </div>
@@ -76,28 +78,31 @@ export function CartView({
         })}
       </div>
 
-      <div className="mt-4 border-t pt-3">
-        <div className="mb-3 flex justify-between text-lg font-bold">
+      <div className="mt-4 border-t border-hairline pt-3">
+        <div className="mb-3 flex justify-between text-lg font-bold text-ink">
           <span>Total</span>
           <span>Rp {cartTotal(cart).toLocaleString("id-ID")}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <button
+          <Button
+            variant="success"
+            size="lg"
             onClick={() => onCheckout("cash")}
             disabled={disabled || cart.length === 0}
-            className="rounded-lg bg-green-600 py-2 text-white disabled:opacity-50"
           >
             Tunai
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
             onClick={() => onCheckout("qris")}
             disabled={disabled || cart.length === 0}
-            className="rounded-lg bg-blue-600 py-2 text-white disabled:opacity-50"
           >
             QRIS
-          </button>
+          </Button>
         </div>
       </div>
     </div>
   )
 }
+
