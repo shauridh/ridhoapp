@@ -1,20 +1,26 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { calcOrderTotal, type OnlineCartItem } from "@/lib/domain/online-order"
+import type { OnlineCartItem } from "@/lib/domain/online-order"
+
+interface SubmitItem {
+  productId: string
+  qty: number
+}
 
 interface SubmitPayload {
   nama: string
   phone: string
   alamat: string
   catatan: string
-  items: OnlineCartItem[]
-  ongkir: number
+  items: SubmitItem[]
   locationUrl: string
 }
 
-// Submit pesanan online dari halaman publik. Memakai anon client (RLS
-// mengizinkan anon INSERT ke online_orders saja).
+// Submit pesanan online dari halaman publik.
+// Memakai RPC security-definer `create_online_order` yang menghitung harga &
+// total dari tabel products (otoritatif), memaksa status='pending', dan
+// membuat confirm_token di server. Anon tidak bisa memalsukan total/status.
 export async function submitOnlineOrder(payload: SubmitPayload) {
   if (!payload.nama.trim() || !payload.phone.trim()) {
     return { ok: false as const, error: "Nama dan nomor HP wajib diisi" }
@@ -23,28 +29,21 @@ export async function submitOnlineOrder(payload: SubmitPayload) {
     return { ok: false as const, error: "Keranjang masih kosong" }
   }
 
-  const { subtotal, total } = calcOrderTotal(payload.items, payload.ongkir)
-  const confirmToken = crypto.randomUUID()
-
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("online_orders")
-    .insert({
-      nama: payload.nama.trim(),
-      phone: payload.phone.trim(),
-      alamat: payload.alamat.trim() || null,
-      catatan: payload.catatan.trim() || null,
-      items: payload.items,
-      subtotal,
-      ongkir: payload.ongkir,
-      total,
-      status: "pending",
-      confirm_token: confirmToken,
-      location_url: payload.locationUrl.trim() || null,
-    })
-    .select("id")
-    .single()
+  const { data, error } = await supabase.rpc("create_online_order", {
+    p_nama: payload.nama.trim(),
+    p_phone: payload.phone.trim(),
+    p_alamat: payload.alamat.trim(),
+    p_catatan: payload.catatan.trim(),
+    p_items: payload.items.map((i) => ({
+      product_id: i.productId,
+      qty: i.qty,
+    })),
+    p_location_url: payload.locationUrl.trim(),
+  })
   if (error) return { ok: false as const, error: error.message }
 
-  return { ok: true as const, orderId: data.id }
+  return { ok: true as const, orderId: data as string }
 }
+
+export type { OnlineCartItem }

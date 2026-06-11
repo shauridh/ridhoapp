@@ -36,6 +36,10 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
     .filter((p) => (cart[p.id] ?? 0) > 0)
     .map((p) => ({ name: p.name, qty: cart[p.id], harga: p.base_price }))
 
+  const submitItems = products
+    .filter((p) => (cart[p.id] ?? 0) > 0)
+    .map((p) => ({ productId: p.id, qty: cart[p.id] }))
+
   const { subtotal, total } = calcOrderTotal(items, ongkir)
 
   const setQty = (id: string, delta: number) =>
@@ -62,8 +66,7 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
         phone,
         alamat,
         catatan,
-        items,
-        ongkir,
+        items: submitItems,
         locationUrl,
       })
       if (result.ok) setDone(true)

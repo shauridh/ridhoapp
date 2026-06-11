@@ -20,7 +20,19 @@ export async function uploadProductImage(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
 
-  const ext = file.name.split(".").pop() || "jpg"
+  // Hanya izinkan tipe gambar umum.
+  const allowed: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+  }
+  const ext = allowed[file.type]
+  if (!ext) {
+    return { ok: false as const, error: "Hanya gambar (JPG/PNG/WEBP/GIF)" }
+  }
+
+  // Nama file aman: tidak memakai nama asli dari klien.
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const { error } = await supabase.storage

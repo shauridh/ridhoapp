@@ -4,7 +4,19 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { calcInstallment } from "@/lib/domain/piutang"
 
+// Defense-in-depth: pastikan pemanggil terautentikasi (RLS juga menegakkan ini).
+async function requireUser() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return { supabase, user }
+}
+
 export async function addAkun(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+
   const nama = String(formData.get("nama") ?? "").trim()
   const tipe = String(formData.get("tipe") ?? "kas_fisik") as
     | "bank"
@@ -13,7 +25,6 @@ export async function addAkun(formData: FormData) {
   const saldoAwal = Number(formData.get("saldoAwal") ?? 0)
   if (!nama) return { ok: false as const, error: "Nama akun wajib diisi" }
 
-  const supabase = await createClient()
   const { error } = await supabase
     .from("akun")
     .insert({ nama, tipe, saldo_awal: saldoAwal })
@@ -24,6 +35,9 @@ export async function addAkun(formData: FormData) {
 }
 
 export async function addOpex(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+
   const nama = String(formData.get("nama") ?? "").trim()
   const nominal = Number(formData.get("nominal") ?? 0)
   const frekuensi = String(formData.get("frekuensi") ?? "bulanan") as
@@ -36,7 +50,6 @@ export async function addOpex(formData: FormData) {
     return { ok: false as const, error: "Nama dan nominal wajib diisi" }
   }
 
-  const supabase = await createClient()
   const { error } = await supabase.from("opex").insert({
     nama,
     nominal,
@@ -50,7 +63,9 @@ export async function addOpex(formData: FormData) {
 }
 
 export async function toggleOpexActive(id: string, aktif: boolean) {
-  const supabase = await createClient()
+  const { supabase, user } = await requireUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+
   const { error } = await supabase.from("opex").update({ aktif }).eq("id", id)
   if (error) return { ok: false as const, error: error.message }
   revalidatePath("/finance")
@@ -58,6 +73,9 @@ export async function toggleOpexActive(id: string, aktif: boolean) {
 }
 
 export async function addPiutang(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+
   const pihak = String(formData.get("pihak") ?? "").trim()
   const nominal = Number(formData.get("nominal") ?? 0)
   const tipe = String(formData.get("tipe") ?? "piutang") as
@@ -77,7 +95,6 @@ export async function addPiutang(formData: FormData) {
   const cicilan =
     tenor && tenor > 0 ? calcInstallment(nominal, bunga ?? 0, tenor) : null
 
-  const supabase = await createClient()
   const { error } = await supabase.from("piutang").insert({
     pihak,
     nominal,
@@ -95,7 +112,9 @@ export async function addPiutang(formData: FormData) {
 }
 
 export async function markPiutangLunas(id: string) {
-  const supabase = await createClient()
+  const { supabase, user } = await requireUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+
   const { error } = await supabase
     .from("piutang")
     .update({ status: "lunas" })
