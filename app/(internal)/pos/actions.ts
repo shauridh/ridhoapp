@@ -30,10 +30,17 @@ export async function checkout(payload: CheckoutPayload) {
     return { ok: false as const, error: "Keranjang kosong" }
   }
 
+  const { data: shift } = await supabase
+    .from("shifts")
+    .select("id")
+    .eq("status", "open")
+    .maybeSingle()
+
   // 1. Buat order
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .insert({
+      shift_id: shift?.id,
       total: payload.total,
       payment_method: payload.paymentMethod,
       source: "cashier",
