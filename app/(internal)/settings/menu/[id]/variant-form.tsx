@@ -2,53 +2,51 @@
 
 import { useState, useTransition } from "react"
 import { addVariant } from "./variant-actions"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input, Select } from "@/components/ui/input"
 
 export function VariantForm({ productId }: { productId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   return (
-    <form
-      action={(formData) => {
-        setError(null)
-        startTransition(async () => {
-          const result = await addVariant(productId, formData)
-          if (!result.ok) setError(result.error)
-        })
-      }}
-      className="flex flex-wrap items-end gap-2 rounded-lg border p-3"
-    >
-      <div className="flex flex-col">
-        <label className="text-xs text-gray-600">Nama varian</label>
-        <input name="name" required className="rounded border px-2 py-1" />
-      </div>
-      <div className="flex flex-col">
-        <label className="text-xs text-gray-600">Tambahan harga</label>
-        <input
-          name="priceDelta"
-          type="number"
-          defaultValue={0}
-          className="w-28 rounded border px-2 py-1"
-        />
-      </div>
-      <div className="flex flex-col">
-        <label className="text-xs text-gray-600">Tipe</label>
-        <select name="type" className="rounded border px-2 py-1">
-          <option value="addon">Tambahan (addon)</option>
-          <option value="option">Pilihan (option)</option>
-        </select>
-      </div>
-      <label className="flex items-center gap-1 text-sm">
-        <input name="isRequired" type="checkbox" /> Wajib
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-black px-3 py-1.5 text-white disabled:opacity-50"
+    <Card>
+      <form
+        action={(formData) => {
+          setError(null)
+          startTransition(async () => {
+            const result = await addVariant(productId, formData)
+            if (!result.ok) setError(result.error)
+          })
+        }}
+        className="flex flex-wrap items-end gap-3"
       >
-        {pending ? "Menyimpan..." : "Tambah varian"}
-      </button>
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
-    </form>
+        <div className="flex-1 min-w-[8rem]">
+          <Input label="Nama varian" name="name" required />
+        </div>
+        <div className="w-32">
+          <Input
+            label="Tambahan harga"
+            name="priceDelta"
+            type="number"
+            defaultValue={0}
+          />
+        </div>
+        <div className="flex-1 min-w-[8rem]">
+          <Select label="Tipe" name="type">
+            <option value="addon">Tambahan (addon)</option>
+            <option value="option">Pilihan (option)</option>
+          </Select>
+        </div>
+        <label className="flex items-center gap-2 py-2 text-sm text-ink">
+          <input name="isRequired" type="checkbox" /> Wajib
+        </label>
+        <Button type="submit" variant="primary" disabled={pending}>
+          {pending ? "Menyimpan..." : "Tambah varian"}
+        </Button>
+        {error && <p className="w-full text-sm text-danger">{error}</p>}
+      </form>
+    </Card>
   )
 }
