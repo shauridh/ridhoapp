@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import {
   Drumstick,
+  LayoutDashboard,
   ShoppingCart,
   UtensilsCrossed,
   Package,
@@ -16,6 +17,7 @@ import {
 import { logout } from "@/lib/domain/auth"
 
 const links = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pos", label: "Kasir", icon: ShoppingCart },
   { href: "/settings/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/inventory", label: "Stok", icon: Package },
