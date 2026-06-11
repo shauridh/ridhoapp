@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { selectActiveRecipe, calcStockDeductions, type RecipeVersion } from "./inventory"
+import { selectActiveRecipe, calcStockDeductions, avgDailyUsage, projectShopping, type RecipeVersion } from "./inventory"
 
 const recipes: RecipeVersion[] = [
   { id: "r1", effectiveFrom: "2026-01-01", lines: [] },
@@ -51,5 +51,39 @@ describe("calcStockDeductions", () => {
       lines: [],
     }
     expect(calcStockDeductions(recipe, 5)).toEqual([])
+  })
+})
+
+describe("avgDailyUsage", () => {
+  it("menghitung rata-rata pemakaian per hari dari total konsumsi", () => {
+    expect(avgDailyUsage(70, 7)).toBe(10)
+  })
+
+  it("mengembalikan 0 bila rentang hari 0 untuk hindari bagi nol", () => {
+    expect(avgDailyUsage(70, 0)).toBe(0)
+  })
+})
+
+describe("projectShopping", () => {
+  it("menghitung jumlah unit beli untuk menutup kebutuhan N hari dikurangi stok", () => {
+    const result = projectShopping({
+      avgPerDay: 10,
+      daysToCover: 7,
+      currentStock: 12,
+      purchaseUnitQty: 9,
+    })
+    expect(result.neededQty).toBe(58)
+    expect(result.purchaseUnits).toBe(7)
+  })
+
+  it("mengembalikan 0 unit bila stok sudah cukup", () => {
+    const result = projectShopping({
+      avgPerDay: 5,
+      daysToCover: 7,
+      currentStock: 100,
+      purchaseUnitQty: 9,
+    })
+    expect(result.neededQty).toBe(0)
+    expect(result.purchaseUnits).toBe(0)
   })
 })

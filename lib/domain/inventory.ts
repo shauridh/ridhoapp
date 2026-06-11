@@ -37,3 +37,30 @@ export function calcStockDeductions(
 function roundQty(n: number): number {
   return Math.round(n * 10000) / 10000
 }
+
+export function avgDailyUsage(totalUsed: number, days: number): number {
+  if (days <= 0) return 0
+  return totalUsed / days
+}
+
+export interface ShoppingProjectionInput {
+  avgPerDay: number
+  daysToCover: number
+  currentStock: number
+  purchaseUnitQty: number
+}
+
+export interface ShoppingProjection {
+  neededQty: number
+  purchaseUnits: number
+}
+
+export function projectShopping(
+  input: ShoppingProjectionInput,
+): ShoppingProjection {
+  const required = input.avgPerDay * input.daysToCover
+  const deficit = Math.max(0, required - input.currentStock)
+  const purchaseUnits =
+    input.purchaseUnitQty > 0 ? Math.ceil(deficit / input.purchaseUnitQty) : 0
+  return { neededQty: roundQty(deficit), purchaseUnits }
+}
