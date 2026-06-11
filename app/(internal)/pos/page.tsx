@@ -15,6 +15,7 @@ import { VariantPicker } from "./variant-picker"
 import { PaymentModal } from "./payment-modal"
 import { Receipt } from "./receipt"
 import { OrderHistory } from "./order-history"
+import { OnlineOrders } from "./online-orders"
 
 interface ReceiptState {
   id: string
@@ -165,6 +166,9 @@ export default function PosPage() {
           onPay={() => setShowPayment(true)}
           disabled={loading}
         />
+        <div className="mt-4">
+          <OnlineOrders />
+        </div>
         <div className="mt-4">
           <OrderHistory />
         </div>
