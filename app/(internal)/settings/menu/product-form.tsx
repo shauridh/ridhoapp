@@ -43,6 +43,14 @@ export function ProductForm() {
           className="w-28 rounded border px-2 py-1"
         />
       </div>
+      <div className="flex flex-col">
+        <label className="text-xs text-gray-600">URL Gambar</label>
+        <input
+          name="imageUrl"
+          placeholder="https://... (opsional)"
+          className="w-48 rounded border px-2 py-1"
+        />
+      </div>
       <button
         type="submit"
         disabled={pending}

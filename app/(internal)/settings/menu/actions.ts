@@ -20,12 +20,15 @@ export async function createProduct(formData: FormData) {
     return { ok: false as const, error: validation.error }
   }
 
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null
+
   const supabase = await createClient()
   const { error } = await supabase.from("products").insert({
     name: input.name,
     type: input.type,
     base_price: input.basePrice,
     category: input.category,
+    image_url: imageUrl,
   })
   if (error) return { ok: false as const, error: error.message }
 
@@ -40,6 +43,8 @@ export async function updateProduct(id: string, formData: FormData) {
     return { ok: false as const, error: validation.error }
   }
 
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null
+
   const supabase = await createClient()
   const { error } = await supabase
     .from("products")
@@ -48,6 +53,7 @@ export async function updateProduct(id: string, formData: FormData) {
       type: input.type,
       base_price: input.basePrice,
       category: input.category,
+      image_url: imageUrl,
     })
     .eq("id", id)
   if (error) return { ok: false as const, error: error.message }
