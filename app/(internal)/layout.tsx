@@ -33,6 +33,9 @@ export default async function InternalLayout({
           <a href="/pos/shift" className="hover:underline">
             Shift
           </a>
+          <a href="/finance" className="hover:underline">
+            Keuangan
+          </a>
         </nav>
         <form action={logout}>
           <button className="text-sm text-gray-600 underline">Keluar</button>
