@@ -31,9 +31,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect internal routes (not login, not static assets, not root).
+  // Protect internal routes (not login, not public order page, not static assets, not root).
   const isInternal =
     !request.nextUrl.pathname.startsWith("/login") &&
+    !request.nextUrl.pathname.startsWith("/order") &&
     !request.nextUrl.pathname.startsWith("/_next") &&
     request.nextUrl.pathname !== "/"
 
