@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { logout } from "@/lib/domain/auth"
+import { Sidebar } from "./sidebar"
+import { ToastProvider } from "@/components/ui/toast"
+import { DialogProvider } from "@/components/ui/dialog"
 
 export default async function InternalLayout({
   children,
@@ -17,31 +19,13 @@ export default async function InternalLayout({
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b px-4 py-3">
-        <span className="font-semibold">POS Fried Chicken</span>
-        <nav className="flex gap-4 text-sm">
-          <a href="/pos" className="hover:underline">
-            Kasir
-          </a>
-          <a href="/settings/menu" className="hover:underline">
-            Menu
-          </a>
-          <a href="/inventory" className="hover:underline">
-            Stok
-          </a>
-          <a href="/pos/shift" className="hover:underline">
-            Shift
-          </a>
-          <a href="/finance" className="hover:underline">
-            Keuangan
-          </a>
-        </nav>
-        <form action={logout}>
-          <button className="text-sm text-gray-600 underline">Keluar</button>
-        </form>
-      </header>
-      <main className="p-4">{children}</main>
-    </div>
+    <ToastProvider>
+      <DialogProvider>
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 overflow-x-hidden p-4">{children}</main>
+        </div>
+      </DialogProvider>
+    </ToastProvider>
   )
 }
