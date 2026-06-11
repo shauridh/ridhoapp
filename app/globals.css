@@ -10,6 +10,10 @@
   --color-success: #16A34A;
   --color-danger: #DC2626;
   --color-hairline: #EADFC8;
+  --color-tint-red: #FEECEC;
+  --color-tint-green: #E9F8EF;
+  --color-tint-amber: #FEF6E7;
+  --color-tint-blue: #EAF1FE;
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
 }
 
