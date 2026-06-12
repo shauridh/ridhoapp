@@ -13,6 +13,7 @@ import { LineChart } from "@/components/ui/line-chart"
 import { DonutChart } from "@/components/ui/donut-chart"
 import { RadarChart } from "@/components/ui/radar-chart"
 import { RankBars } from "@/components/ui/rank-bars"
+import { BarChart } from "@/components/ui/bar-chart"
 import { PageHeader } from "@/components/ui/page-header"
 import { RangeSelector } from "./range-selector"
 import { TrendingUp, Receipt, ShoppingBag, Banknote } from "lucide-react"
@@ -98,25 +99,22 @@ export default async function DashboardPage({
         />
       </div>
 
-      {/* Baris 1: Line 7 hari (2/3) + Donut metode bayar (1/3) */}
+      {/* Baris 1: Bar per jam (2/3) + Donut metode bayar (1/3) */}
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
-            <span className="text-xs text-ink-soft">
-              Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
-            </span>
-          </div>
-          <LineChart
-            data={last7Daily.map((d) => {
-              const dt = new Date(d.date + "T00:00:00Z")
-              return {
-                label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
-                value: d.total,
-              }
-            })}
+          <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
+          <BarChart
+            data={hourly
+              .map((val, hour) => ({ hour, val }))
+              .filter((h) => h.hour >= 8 && h.hour <= 22)
+              .map((h) => ({ label: `${h.hour}`, value: h.val }))}
+            color="bg-accent"
             formatValue={rupiah}
+            labelEvery={2}
           />
+          <p className="mt-1 text-center text-2xs text-ink-faint">
+            Jam operasional (08.00 - 22.00)
+          </p>
         </Card>
 
         <Card>
@@ -131,7 +129,7 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      {/* Baris 2: Radar produk terlaris + Bar per jam */}
+      {/* Baris 2: Radar produk terlaris + Bar penjualan 7 hari */}
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <h2 className="mb-3 font-semibold text-ink">Produk Terlaris</h2>
@@ -147,18 +145,23 @@ export default async function DashboardPage({
         </Card>
 
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
-          <LineChart
-            data={hourly
-              .map((val, hour) => ({ hour, val }))
-              .filter((h) => h.hour >= 8 && h.hour <= 22)
-              .map((h) => ({ label: `${h.hour}`, value: h.val }))}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
+            <span className="text-xs text-ink-soft">
+              Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
+            </span>
+          </div>
+          <BarChart
+            data={last7Daily.map((d) => {
+              const dt = new Date(d.date + "T00:00:00Z")
+              return {
+                label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
+                value: d.total,
+              }
+            })}
+            color="bg-brand"
             formatValue={rupiah}
-            labelEvery={2}
           />
-          <p className="mt-1 text-center text-2xs text-ink-faint">
-            Jam operasional (08.00 - 22.00)
-          </p>
         </Card>
       </div>
 
