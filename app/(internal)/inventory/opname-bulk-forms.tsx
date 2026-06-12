@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react"
 import { ClipboardCheck, Upload } from "lucide-react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input, Select } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
@@ -40,8 +39,8 @@ export function OpnameBulkForms({ ingredients }: { ingredients: Option[] }) {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <Card>
+    <div className="grid gap-6 md:grid-cols-2">
+      <div>
         <h3 className="mb-2 flex items-center gap-2 font-medium text-ink">
           <ClipboardCheck size={18} className="text-brand" /> Stok Opname
         </h3>
@@ -65,9 +64,9 @@ export function OpnameBulkForms({ ingredients }: { ingredients: Option[] }) {
             Simpan Opname
           </Button>
         </form>
-      </Card>
+      </div>
 
-      <Card>
+      <div>
         <h3 className="mb-2 flex items-center gap-2 font-medium text-ink">
           <Upload size={18} className="text-brand" /> Bulk Import Bahan
         </h3>
@@ -91,7 +90,7 @@ export function OpnameBulkForms({ ingredients }: { ingredients: Option[] }) {
         >
           Import
         </Button>
-      </Card>
+      </div>
     </div>
   )
 }

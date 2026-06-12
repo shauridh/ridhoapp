@@ -3,9 +3,19 @@ import { listIngredients, usageSince } from "@/lib/data/inventory"
 import { avgDailyUsage } from "@/lib/domain/inventory"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatCard } from "@/components/ui/stat-card"
+import { Collapsible } from "@/components/ui/collapsible"
 import { IngredientForm } from "./ingredient-form"
 import { StockActionsForm } from "./stock-actions-form"
 import { OpnameBulkForms } from "./opname-bulk-forms"
+import {
+  Plus,
+  PackagePlus,
+  ClipboardCheck,
+  Package,
+  AlertTriangle,
+  ShoppingCart,
+} from "lucide-react"
 
 const WINDOW_DAYS = 7
 
@@ -15,28 +25,50 @@ export default async function InventoryPage() {
   const usage = await usageSince(since)
   const usageMap = new Map(usage.map((u) => [u.ingredient_id, u.total_used]))
 
+  const lowCount = ingredients.filter(
+    (i) => i.stock_qty <= i.low_stock_threshold,
+  ).length
+  const opts = ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink">Stok Bahan</h1>
-        <Link href="/inventory/shopping" className="text-sm font-semibold text-brand">
-          Saran Belanja &rarr;
+        <Link
+          href="/inventory/shopping"
+          className="flex items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
+        >
+          <ShoppingCart size={16} /> Saran Belanja
         </Link>
       </div>
 
-      <IngredientForm />
-      <StockActionsForm ingredients={ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))} />
-      <OpnameBulkForms ingredients={ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Total Bahan" tone="blue" icon={Package} value={String(ingredients.length)} />
+        <StatCard label="Menipis" tone={lowCount > 0 ? "red" : "green"} icon={AlertTriangle} value={String(lowCount)} />
+        <StatCard label="Pantau (7 hari)" tone="amber" icon={ClipboardCheck} value={`${WINDOW_DAYS} hari`} />
+      </div>
+
+      <div className="space-y-3">
+        <Collapsible title="Tambah Bahan" icon={Plus}>
+          <IngredientForm />
+        </Collapsible>
+        <Collapsible title="Restock & Penyesuaian" icon={PackagePlus}>
+          <StockActionsForm ingredients={opts} />
+        </Collapsible>
+        <Collapsible title="Opname & Import Massal" icon={ClipboardCheck}>
+          <OpnameBulkForms ingredients={opts} />
+        </Collapsible>
+      </div>
 
       <Card className="overflow-x-auto p-0">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-surface text-left text-ink-soft">
-              <th className="px-3 py-2">Bahan</th>
-              <th className="px-3 py-2 text-right">Stok</th>
-              <th className="px-3 py-2">Satuan</th>
-              <th className="px-3 py-2 text-right">Rata-rata/hari (7h)</th>
-              <th className="px-3 py-2">Status</th>
+              <th className="px-4 py-3">Bahan</th>
+              <th className="px-4 py-3 text-right">Stok</th>
+              <th className="px-4 py-3">Satuan</th>
+              <th className="px-4 py-3 text-right">Rata-rata/hari (7h)</th>
+              <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -45,19 +77,34 @@ export default async function InventoryPage() {
               const perDay = avgDailyUsage(totalUsed, WINDOW_DAYS)
               const low = i.stock_qty <= i.low_stock_threshold
               return (
-                <tr key={i.id} className="border-b border-hairline text-ink">
-                  <td className="px-3 py-2">{i.name}</td>
-                  <td className="px-3 py-2 text-right">{i.stock_qty.toLocaleString("id-ID")}</td>
-                  <td className="px-3 py-2">{i.unit}</td>
-                  <td className="px-3 py-2 text-right">{perDay.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</td>
-                  <td className="px-3 py-2">
-                    {low ? <Badge tone="danger">Menipis</Badge> : <Badge tone="success">Aman</Badge>}
+                <tr
+                  key={i.id}
+                  className="border-b border-hairline last:border-0 text-ink transition hover:bg-surface/50"
+                >
+                  <td className="px-4 py-3 font-medium">{i.name}</td>
+                  <td className="px-4 py-3 text-right font-semibold">
+                    {i.stock_qty.toLocaleString("id-ID")}
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft">{i.unit}</td>
+                  <td className="px-4 py-3 text-right text-ink-soft">
+                    {perDay.toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-4 py-3">
+                    {low ? (
+                      <Badge tone="danger">Menipis</Badge>
+                    ) : (
+                      <Badge tone="success">Aman</Badge>
+                    )}
                   </td>
                 </tr>
               )
             })}
             {ingredients.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-4 text-center text-ink-soft">Belum ada bahan.</td></tr>
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-ink-soft">
+                  Belum ada bahan. Tambahkan lewat panel di atas.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
