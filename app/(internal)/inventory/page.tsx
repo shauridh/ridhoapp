@@ -9,7 +9,7 @@ import { IngredientForm } from "./ingredient-form"
 import {
   Package,
   AlertTriangle,
-  TrendingDown,
+  XCircle,
   ShoppingCart,
 } from "lucide-react"
 
@@ -25,15 +25,16 @@ export default async function InventoryPage() {
   const usageMap = new Map(usage.map((u) => [u.ingredient_id, u.total_used]))
 
   const lowCount = ingredients.filter(
-    (i) => i.stock_qty <= i.low_stock_threshold,
+    (i) => i.stock_qty > 0 && i.stock_qty <= i.low_stock_threshold,
   ).length
+  const emptyCount = ingredients.filter((i) => i.stock_qty <= 0).length
   const opts = ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }))
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-ink">Stok Bahan</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/inventory/shopping"
             className="flex items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
@@ -53,16 +54,16 @@ export default async function InventoryPage() {
           value={String(ingredients.length)}
         />
         <StatCard
-          label="Menipis"
-          tone={lowCount > 0 ? "red" : "green"}
+          label="Stok Menipis"
+          tone={lowCount > 0 ? "amber" : "green"}
           icon={AlertTriangle}
           value={String(lowCount)}
         />
         <StatCard
-          label="Periode Pantau"
-          tone="amber"
-          icon={TrendingDown}
-          value={`${WINDOW_DAYS} hari`}
+          label="Stok Habis"
+          tone={emptyCount > 0 ? "red" : "green"}
+          icon={XCircle}
+          value={String(emptyCount)}
         />
       </div>
 
@@ -77,80 +78,75 @@ export default async function InventoryPage() {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {ingredients.map((i) => {
-            const totalUsed = usageMap.get(i.id) ?? 0
-            const perDay = avgDailyUsage(totalUsed, WINDOW_DAYS)
-            const low = i.stock_qty <= i.low_stock_threshold
-            // Estimasi sisa hari berdasar pemakaian rata-rata.
-            const daysLeft =
-              perDay > 0 ? Math.floor(i.stock_qty / perDay) : null
-            // Rasio stok terhadap 2x batas menipis (untuk bar visual).
-            const ratioMax = Math.max(i.low_stock_threshold * 2, 1)
-            const pct = Math.min(100, (i.stock_qty / ratioMax) * 100)
-            const barColor = low
-              ? "bg-danger"
-              : daysLeft !== null && daysLeft <= 3
-                ? "bg-accent"
-                : "bg-success"
+        <Card className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-surface text-left text-ink-soft">
+                <th className="px-4 py-3">Bahan</th>
+                <th className="px-4 py-3 text-right">Stok</th>
+                <th className="px-4 py-3 text-right">Batas Menipis</th>
+                <th className="px-4 py-3 text-right">Pakai/Hari</th>
+                <th className="px-4 py-3 text-right">Estimasi Sisa</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ingredients.map((i) => {
+                const totalUsed = usageMap.get(i.id) ?? 0
+                const perDay = avgDailyUsage(totalUsed, WINDOW_DAYS)
+                const empty = i.stock_qty <= 0
+                const low = !empty && i.stock_qty <= i.low_stock_threshold
+                const daysLeft =
+                  perDay > 0 ? Math.floor(i.stock_qty / perDay) : null
 
-            return (
-              <Card key={i.id} className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-bold text-ink">{i.name}</h3>
-                    <p className="text-xs text-ink-soft">
-                      Batas menipis: {fmt(i.low_stock_threshold)} {i.unit}
-                    </p>
-                  </div>
-                  {low ? (
-                    <Badge tone="danger">Menipis</Badge>
-                  ) : daysLeft !== null && daysLeft <= 3 ? (
-                    <Badge tone="accent">Hampir habis</Badge>
-                  ) : (
-                    <Badge tone="success">Aman</Badge>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-ink">
-                      {fmt(i.stock_qty)}
-                    </span>
-                    <span className="text-sm text-ink-soft">{i.unit}</span>
-                  </div>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface">
-                    <div
-                      className={`h-full ${barColor} transition-all`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 border-t border-hairline pt-3 text-sm">
-                  <div>
-                    <p className="text-xs text-ink-soft">Pakai/hari</p>
-                    <p className="font-semibold text-ink">
-                      {fmt(perDay)} {i.unit}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-ink-soft">Sisa</p>
-                    <p className="font-semibold text-ink">
+                return (
+                  <tr
+                    key={i.id}
+                    className="border-b border-hairline last:border-0 text-ink transition hover:bg-surface/50"
+                  >
+                    <td className="px-4 py-3 font-medium">{i.name}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="font-semibold">{fmt(i.stock_qty)}</span>{" "}
+                      <span className="text-xs text-ink-soft">{i.unit}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-ink-soft">
+                      {fmt(i.low_stock_threshold)} {i.unit}
+                    </td>
+                    <td className="px-4 py-3 text-right text-ink-soft">
+                      {perDay > 0 ? `${fmt(perDay)} ${i.unit}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
                       {daysLeft === null ? (
                         <span className="text-ink-faint">—</span>
                       ) : daysLeft === 0 ? (
-                        <span className="text-danger">Habis hari ini</span>
+                        <span className="font-semibold text-danger">
+                          Habis hari ini
+                        </span>
                       ) : (
-                        `± ${daysLeft} hari`
+                        <span
+                          className={
+                            daysLeft <= 3 ? "font-semibold text-accent" : ""
+                          }
+                        >
+                          ± {daysLeft} hari
+                        </span>
                       )}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {empty ? (
+                        <Badge tone="danger">Habis</Badge>
+                      ) : low ? (
+                        <Badge tone="accent">Menipis</Badge>
+                      ) : (
+                        <Badge tone="success">Aman</Badge>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   )

@@ -8,6 +8,7 @@ import {
   filterProducts,
   extractCategories,
 } from "@/lib/domain/product-filter"
+import { CategoryChips } from "./category-chips"
 
 interface Props {
   products: ProductRow[]
@@ -57,23 +58,11 @@ export function ProductGrid({
           </div>
         )}
 
-        {categories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <CategoryChip
-              label="Semua"
-              active={category === null}
-              onClick={() => onCategoryChange(null)}
-            />
-            {categories.map((c) => (
-              <CategoryChip
-                key={c}
-                label={c}
-                active={category === c}
-                onClick={() => onCategoryChange(c)}
-              />
-            ))}
-          </div>
-        )}
+        <CategoryChips
+          categories={categories}
+          active={category}
+          onChange={onCategoryChange}
+        />
       </div>
 
       <div className="grid gap-3" style={gridStyle(cols)}>
@@ -122,28 +111,5 @@ export function ProductGrid({
         )}
       </div>
     </div>
-  )
-}
-
-function CategoryChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-        active
-          ? "bg-brand text-white"
-          : "border border-hairline bg-white text-ink"
-      }`}
-    >
-      {label}
-    </button>
   )
 }

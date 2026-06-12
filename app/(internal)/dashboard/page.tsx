@@ -1,4 +1,4 @@
-import { getDashboardData, getOmzetForRange } from "@/lib/data/dashboard"
+import { getDashboardData, getOmzetForRange, getDailySales } from "@/lib/data/dashboard"
 import {
   aggregateByHour,
   aggregateByDay,
@@ -26,6 +26,8 @@ export const dynamic = "force-dynamic"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
+const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -38,6 +40,15 @@ export default async function DashboardPage({
   const data = await getDashboardData(r.start, r.end)
   const prevOmzet = await getOmzetForRange(r.prevStart, r.prevEnd)
   const cmp = comparePeriod(data.totalOmzet, prevOmzet)
+
+  // Tren 7 hari terakhir SELALU tampil, lepas dari rentang yang dipilih.
+  const last7 = resolveRange("7d")
+  const last7Sales = await getDailySales(last7.start, last7.end)
+  const last7Daily = aggregateByDay(
+    last7Sales,
+    last7.start.slice(0, 10),
+    last7.end.slice(0, 10),
+  )
 
   const sellers = topSellers(data.lines, 5)
   const categories = aggregateByCategory(data.categoryLines)
@@ -96,9 +107,29 @@ export default async function DashboardPage({
         </div>
       </Card>
 
+      <Card>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
+          <span className="text-xs text-ink-soft">
+            Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
+          </span>
+        </div>
+        <BarChart
+          data={last7Daily.map((d) => {
+            const dt = new Date(d.date + "T00:00:00Z")
+            return {
+              label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
+              value: d.total,
+            }
+          })}
+          color="bg-brand"
+          formatValue={rupiah}
+        />
+      </Card>
+
       {multiDay && (
         <Card>
-          <h2 className="mb-4 font-semibold text-ink">Tren Omzet Harian</h2>
+          <h2 className="mb-4 font-semibold text-ink">Tren Omzet Harian (Periode)</h2>
           <BarChart
             data={daily.map((d) => ({ label: d.date.slice(8, 10), value: d.total }))}
             color="bg-brand"

@@ -96,3 +96,21 @@ export async function getOmzetForRange(
     .lte("created_at", endIso)
   return (data ?? []).reduce((s, o) => s + Number(o.total), 0)
 }
+
+// Daftar penjualan harian (date + total) untuk rentang waktu — ringan, untuk grafik tren.
+export async function getDailySales(
+  startIso: string,
+  endIso: string,
+): Promise<DatedSale[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("orders")
+    .select("created_at, total")
+    .eq("status", "completed")
+    .gte("created_at", startIso)
+    .lte("created_at", endIso)
+  return (data ?? []).map((o) => ({
+    date: new Date(o.created_at).toISOString().slice(0, 10),
+    total: Number(o.total),
+  }))
+}
