@@ -39,7 +39,7 @@ export function OpnameBulkForms({ ingredients }: { ingredients: Option[] }) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="space-y-6">
       <div>
         <h3 className="mb-2 flex items-center gap-2 font-medium text-ink">
           <ClipboardCheck size={18} className="text-brand" /> Stok Opname

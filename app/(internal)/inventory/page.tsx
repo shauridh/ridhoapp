@@ -4,16 +4,11 @@ import { avgDailyUsage } from "@/lib/domain/inventory"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
-import { Collapsible } from "@/components/ui/collapsible"
-import { IngredientForm } from "./ingredient-form"
-import { StockActionsForm } from "./stock-actions-form"
-import { OpnameBulkForms } from "./opname-bulk-forms"
+import { StockActionsPanel } from "./stock-actions-panel"
 import {
-  Plus,
-  PackagePlus,
-  ClipboardCheck,
   Package,
   AlertTriangle,
+  ClipboardCheck,
   ShoppingCart,
 } from "lucide-react"
 
@@ -34,30 +29,21 @@ export default async function InventoryPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink">Stok Bahan</h1>
-        <Link
-          href="/inventory/shopping"
-          className="flex items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
-        >
-          <ShoppingCart size={16} /> Saran Belanja
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/inventory/shopping"
+            className="flex items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
+          >
+            <ShoppingCart size={16} /> Saran Belanja
+          </Link>
+          <StockActionsPanel ingredients={opts} />
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Total Bahan" tone="blue" icon={Package} value={String(ingredients.length)} />
         <StatCard label="Menipis" tone={lowCount > 0 ? "red" : "green"} icon={AlertTriangle} value={String(lowCount)} />
         <StatCard label="Pantau (7 hari)" tone="amber" icon={ClipboardCheck} value={`${WINDOW_DAYS} hari`} />
-      </div>
-
-      <div className="space-y-3">
-        <Collapsible title="Tambah Bahan" icon={<Plus size={18} />}>
-          <IngredientForm />
-        </Collapsible>
-        <Collapsible title="Restock & Penyesuaian" icon={<PackagePlus size={18} />}>
-          <StockActionsForm ingredients={opts} />
-        </Collapsible>
-        <Collapsible title="Opname & Import Massal" icon={<ClipboardCheck size={18} />}>
-          <OpnameBulkForms ingredients={opts} />
-        </Collapsible>
       </div>
 
       <Card className="overflow-x-auto p-0">
