@@ -3,7 +3,8 @@ import { listAkun, listOpex, listPiutang } from "@/lib/data/akun"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
-import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
+import { Collapsible } from "@/components/ui/collapsible"
+import { TrendingUp, Receipt, BarChart3, Wallet, PlusCircle } from "lucide-react"
 import { ManualEntryForm } from "./manual-entry-form"
 import { KeuanganManager } from "./keuangan-manager"
 
@@ -58,7 +59,9 @@ export default async function FinancePage() {
         />
       </div>
 
-      <ManualEntryForm categories={categories} />
+      <Collapsible title="Input Manual" icon={PlusCircle}>
+        <ManualEntryForm categories={categories} />
+      </Collapsible>
 
       <KeuanganManager akun={akun} opex={opex} piutang={piutang} />
 
@@ -68,31 +71,34 @@ export default async function FinancePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface text-left text-ink-soft">
-                <th className="px-3 py-2">Tanggal</th>
-                <th>Keterangan</th>
-                <th>Jenis</th>
-                <th className="text-right">Masuk</th>
-                <th className="px-3 text-right">Keluar</th>
+                <th className="px-4 py-3">Tanggal</th>
+                <th className="px-4 py-3">Keterangan</th>
+                <th className="px-4 py-3">Jenis</th>
+                <th className="px-4 py-3 text-right">Masuk</th>
+                <th className="px-4 py-3 text-right">Keluar</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((e) => {
                 const badge = kindBadge[e.kind] ?? { tone: "neutral" as const, label: e.kind.toUpperCase() }
                 return (
-                  <tr key={e.id} className="border-b border-hairline text-ink">
-                    <td className="px-3 py-2">
+                  <tr
+                    key={e.id}
+                    className="border-b border-hairline last:border-0 text-ink transition hover:bg-surface/50"
+                  >
+                    <td className="px-4 py-3">
                       {new Date(e.entry_date).toLocaleDateString("id-ID")}
                     </td>
-                    <td>{e.note || "-"}</td>
-                    <td>
+                    <td className="px-4 py-3">{e.note || "-"}</td>
+                    <td className="px-4 py-3">
                       <Badge tone={badge.tone}>{badge.label}</Badge>
                     </td>
-                    <td className="text-right text-success">
+                    <td className="px-4 py-3 text-right font-semibold text-success">
                       {e.direction === "in"
                         ? `Rp ${e.amount.toLocaleString("id-ID")}`
                         : "-"}
                     </td>
-                    <td className="px-3 text-right text-danger">
+                    <td className="px-4 py-3 text-right font-semibold text-danger">
                       {e.direction === "out"
                         ? `Rp ${e.amount.toLocaleString("id-ID")}`
                         : "-"}
@@ -102,7 +108,7 @@ export default async function FinancePage() {
               })}
               {entries.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-center text-ink-soft">
+                  <td colSpan={5} className="px-4 py-8 text-center text-ink-soft">
                     Belum ada transaksi.
                   </td>
                 </tr>
