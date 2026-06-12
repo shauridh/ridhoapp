@@ -9,6 +9,9 @@ import {
 import { resolveRange, type RangePreset } from "@/lib/domain/date-range"
 import { Card } from "@/components/ui/card"
 import { StatCard } from "@/components/ui/stat-card"
+import { BarChart } from "@/components/ui/bar-chart"
+import { RankBars } from "@/components/ui/rank-bars"
+import { SplitBar } from "@/components/ui/split-bar"
 import { RangeSelector } from "./range-selector"
 import {
   TrendingUp,
@@ -22,7 +25,6 @@ import {
 export const dynamic = "force-dynamic"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
-const CAT_COLORS = ["bg-brand", "bg-accent", "bg-success", "bg-blue-400", "bg-purple-400"]
 
 export default async function DashboardPage({
   searchParams,
@@ -38,16 +40,14 @@ export default async function DashboardPage({
   const cmp = comparePeriod(data.totalOmzet, prevOmzet)
 
   const sellers = topSellers(data.lines, 5)
-  const maxSeller = Math.max(1, ...sellers.map((s) => s.qty))
   const categories = aggregateByCategory(data.categoryLines)
-  const maxCat = Math.max(1, ...categories.map((c) => c.omzet))
   const avg = data.totalTransaksi > 0 ? data.totalOmzet / data.totalTransaksi : 0
 
   const multiDay = r.days > 1
-  const daily = multiDay ? aggregateByDay(data.datedSales, r.start.slice(0, 10), r.end.slice(0, 10)) : []
-  const maxDay = Math.max(1, ...daily.map((d) => d.total))
+  const daily = multiDay
+    ? aggregateByDay(data.datedSales, r.start.slice(0, 10), r.end.slice(0, 10))
+    : []
   const hourly = aggregateByHour(data.lines)
-  const maxHour = Math.max(1, ...hourly)
 
   const TrendIcon =
     cmp.direction === "up" ? TrendingUp : cmp.direction === "down" ? TrendingDown : Minus
@@ -75,124 +75,84 @@ export default async function DashboardPage({
       <Card>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-ink-soft">vs periode sebelumnya</p>
+            <p className="text-sm font-medium text-ink">vs periode sebelumnya</p>
             <p className="text-xs text-ink-faint">{rupiah(prevOmzet)}</p>
           </div>
-          <div className={`flex items-center gap-1 font-semibold ${trendColor}`}>
-            <TrendIcon size={18} />
-            <span>
-              {cmp.percent > 0 ? "+" : ""}
-              {cmp.percent}%
+          <div className={`flex items-center gap-2 ${trendColor}`}>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface">
+              <TrendIcon size={18} />
             </span>
-            <span className="text-sm text-ink-soft">
-              ({cmp.diff >= 0 ? "+" : "-"}
-              {rupiah(Math.abs(cmp.diff))})
-            </span>
+            <div className="text-right">
+              <div className="font-bold leading-tight">
+                {cmp.percent > 0 ? "+" : ""}
+                {cmp.percent}%
+              </div>
+              <div className="text-xs text-ink-soft">
+                {cmp.diff >= 0 ? "+" : "-"}
+                {rupiah(Math.abs(cmp.diff))}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
 
       {multiDay && (
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Tren Omzet Harian</h2>
-          <div className="flex items-end gap-1" style={{ height: "160px" }}>
-            {daily.map((d) => (
-              <div key={d.date} className="flex flex-1 flex-col items-center justify-end">
-                <div
-                  className="w-full rounded-t bg-brand"
-                  style={{ height: `${(d.total / maxDay) * 140}px` }}
-                  title={`${d.date} — ${rupiah(d.total)}`}
-                />
-                <span className="mt-1 text-[9px] text-ink-soft">
-                  {d.date.slice(8, 10)}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-ink-soft">Tanggal — tinggi batang = omzet</p>
+          <h2 className="mb-4 font-semibold text-ink">Tren Omzet Harian</h2>
+          <BarChart
+            data={daily.map((d) => ({ label: d.date.slice(8, 10), value: d.total }))}
+            color="bg-brand"
+            formatValue={rupiah}
+            labelEvery={r.days > 14 ? 3 : 1}
+          />
         </Card>
       )}
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Metode Pembayaran</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-ink-soft">Tunai</span>
-              <span className="font-semibold text-ink">{rupiah(data.cashTotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink-soft">QRIS</span>
-              <span className="font-semibold text-ink">{rupiah(data.qrisTotal)}</span>
-            </div>
-          </div>
+          <h2 className="mb-4 font-semibold text-ink">Metode Pembayaran</h2>
+          <SplitBar
+            segments={[
+              { label: "Tunai", value: data.cashTotal, colorClass: "bg-success" },
+              { label: "QRIS", value: data.qrisTotal, colorClass: "bg-accent" },
+            ]}
+            formatValue={rupiah}
+          />
         </Card>
 
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Omzet per Kategori</h2>
-          <div className="space-y-2">
-            {categories.map((c, i) => (
-              <div key={c.category}>
-                <div className="flex justify-between text-sm text-ink">
-                  <span>{c.category}</span>
-                  <span className="text-ink-soft">{rupiah(c.omzet)}</span>
-                </div>
-                <div className="mt-1 h-2 rounded-full bg-surface">
-                  <div
-                    className={`h-2 rounded-full ${CAT_COLORS[i % CAT_COLORS.length]}`}
-                    style={{ width: `${(c.omzet / maxCat) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-            {categories.length === 0 && (
-              <p className="text-sm text-ink-soft">Belum ada penjualan.</p>
-            )}
-          </div>
+          <h2 className="mb-4 font-semibold text-ink">Omzet per Kategori</h2>
+          <RankBars
+            data={categories.map((c) => ({ label: c.category, value: c.omzet }))}
+            color="bg-accent"
+            formatValue={rupiah}
+            emptyText="Belum ada penjualan."
+          />
         </Card>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Produk Terlaris</h2>
-          <div className="space-y-2">
-            {sellers.map((s) => (
-              <div key={s.name}>
-                <div className="flex justify-between text-sm text-ink">
-                  <span>{s.name}</span>
-                  <span className="text-ink-soft">{s.qty} terjual</span>
-                </div>
-                <div className="mt-1 h-2 rounded-full bg-surface">
-                  <div
-                    className="h-2 rounded-full bg-brand"
-                    style={{ width: `${(s.qty / maxSeller) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-            {sellers.length === 0 && (
-              <p className="text-sm text-ink-soft">Belum ada penjualan.</p>
-            )}
-          </div>
+          <h2 className="mb-4 font-semibold text-ink">Produk Terlaris</h2>
+          <RankBars
+            data={sellers.map((s) => ({
+              label: s.name,
+              value: s.qty,
+              sublabel: "terjual",
+            }))}
+            color="bg-brand"
+            emptyText="Belum ada penjualan."
+          />
         </Card>
 
         <Card>
-          <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
-          <div className="flex items-end gap-1" style={{ height: "160px" }}>
-            {hourly.map((val, hour) => (
-              <div key={hour} className="flex flex-1 flex-col items-center justify-end">
-                <div
-                  className="w-full rounded-t bg-accent"
-                  style={{ height: `${(val / maxHour) * 140}px` }}
-                  title={`${hour}:00 — ${rupiah(val)}`}
-                />
-                {hour % 3 === 0 && (
-                  <span className="mt-1 text-[9px] text-ink-soft">{hour}</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-ink-soft">Jam (0-23) — tinggi batang = omzet</p>
+          <h2 className="mb-4 font-semibold text-ink">Penjualan per Jam</h2>
+          <BarChart
+            data={hourly.map((val, hour) => ({ label: String(hour), value: val }))}
+            color="bg-accent"
+            formatValue={rupiah}
+            labelEvery={3}
+          />
         </Card>
       </div>
     </div>
