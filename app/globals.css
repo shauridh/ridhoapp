@@ -37,3 +37,45 @@ body {
     width: 100%;
   }
 }
+
+/* react-grid-layout: gaya minimal yang diperlukan */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-brand);
+  opacity: 0.2;
+  border-radius: 1rem;
+  transition-duration: 100ms;
+  z-index: 2;
+}
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+}
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-ink-soft);
+  border-bottom: 2px solid var(--color-ink-soft);
+}
+.react-grid-item.react-draggable-dragging {
+  z-index: 3;
+  opacity: 0.9;
+}
