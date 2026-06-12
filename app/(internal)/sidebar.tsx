@@ -10,6 +10,7 @@ import {
   Package,
   Receipt,
   Wallet,
+  Settings,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,6 +24,7 @@ const links = [
   { href: "/inventory", label: "Stok", icon: Package },
   { href: "/pos/shift", label: "Shift", icon: Receipt },
   { href: "/finance", label: "Keuangan", icon: Wallet },
+  { href: "/settings", label: "Pengaturan", icon: Settings },
 ]
 
 export function Sidebar() {
