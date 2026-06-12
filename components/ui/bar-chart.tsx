@@ -1,7 +1,6 @@
 interface Bar {
   label: string
   value: number
-  // sublabel opsional untuk tampil di bawah bar (mis. tanggal)
 }
 
 interface Props {
@@ -18,34 +17,33 @@ interface Props {
 export function BarChart({
   data,
   color = "bg-brand",
-  height = 180,
+  height = 130,
   formatValue = (n) => String(n),
   labelEvery = 1,
 }: Props) {
   const max = Math.max(1, ...data.map((d) => d.value))
-  const plotH = height - 28 // sisakan ruang untuk label sumbu-x
+  const plotH = height - 22 // sisakan ruang untuk label sumbu-x
 
   return (
     <div className="w-full">
       <div className="relative" style={{ height: plotH }}>
         {/* gridline horizontal */}
-        {[0, 0.25, 0.5, 0.75, 1].map((g) => (
+        {[0, 0.5, 1].map((g) => (
           <div
             key={g}
-            className="absolute inset-x-0 border-t border-dashed border-hairline/60"
+            className="absolute inset-x-0 border-t border-dashed border-hairline/50"
             style={{ bottom: `${g * 100}%` }}
           />
         ))}
         {/* bar */}
-        <div className="absolute inset-0 flex items-end gap-1">
+        <div className="absolute inset-0 flex items-end justify-around gap-1">
           {data.map((d, i) => (
             <div
               key={i}
-              className="group relative flex flex-1 items-end justify-center"
-              style={{ height: "100%" }}
+              className="group relative flex h-full flex-1 items-end justify-center"
             >
               <div
-                className={`w-full rounded-t-md ${color} transition-all hover:opacity-80`}
+                className={`w-full max-w-[28px] rounded-t ${color} transition-all hover:opacity-80`}
                 style={{ height: `${Math.max(2, (d.value / max) * plotH)}px` }}
               />
               {/* tooltip */}
@@ -57,12 +55,9 @@ export function BarChart({
         </div>
       </div>
       {/* label sumbu-x */}
-      <div className="mt-1 flex gap-1">
+      <div className="mt-1 flex justify-around gap-1">
         {data.map((d, i) => (
-          <div
-            key={i}
-            className="flex-1 text-center text-[9px] text-ink-soft"
-          >
+          <div key={i} className="flex-1 text-center text-[9px] text-ink-soft">
             {i % labelEvery === 0 ? d.label : ""}
           </div>
         ))}
