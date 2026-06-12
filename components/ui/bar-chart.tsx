@@ -7,60 +7,57 @@ interface Props {
   data: Bar[]
   color?: string
   height?: number
-  // format nilai untuk tooltip & puncak
   formatValue?: (n: number) => string
   // tampilkan setiap label ke-n (untuk sumbu padat seperti jam)
   labelEvery?: number
 }
 
-// Bar chart ringan berbasis CSS dengan baseline, gridline, dan tooltip.
+// Bar chart ringan berbasis CSS. Tiap kolom membungkus bar + label dalam satu
+// sel flex-1 sehingga bar dan label SELALU sejajar (presisi).
 export function BarChart({
   data,
   color = "bg-brand",
-  height = 130,
+  height = 150,
   formatValue = (n) => String(n),
   labelEvery = 1,
 }: Props) {
   const max = Math.max(1, ...data.map((d) => d.value))
-  const plotH = height - 22 // sisakan ruang untuk label sumbu-x
+  const plotH = height - 22
 
   return (
     <div className="w-full">
-      <div className="relative" style={{ height: plotH }}>
-        {/* gridline horizontal */}
-        {[0, 0.5, 1].map((g) => (
-          <div
-            key={g}
-            className="absolute inset-x-0 border-t border-dashed border-hairline/50"
-            style={{ bottom: `${g * 100}%` }}
-          />
-        ))}
-        {/* bar */}
-        <div className="absolute inset-0 flex items-end justify-around gap-1">
-          {data.map((d, i) => (
+      <div className="relative">
+        {/* gridline */}
+        <div className="pointer-events-none absolute inset-x-0" style={{ height: plotH }}>
+          {[0, 0.5, 1].map((g) => (
             <div
-              key={i}
-              className="group relative flex h-full flex-1 items-end justify-center"
-            >
+              key={g}
+              className="absolute inset-x-0 border-t border-dashed border-hairline/50"
+              style={{ bottom: `${g * 100}%` }}
+            />
+          ))}
+        </div>
+
+        {/* kolom: bar + label menyatu per sel */}
+        <div className="flex items-end">
+          {data.map((d, i) => (
+            <div key={i} className="group flex flex-1 flex-col items-center">
               <div
-                className={`w-full max-w-[28px] rounded-t ${color} transition-all hover:opacity-80`}
-                style={{ height: `${Math.max(2, (d.value / max) * plotH)}px` }}
-              />
-              {/* tooltip */}
-              <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow transition group-hover:opacity-100">
-                {d.label}: {formatValue(d.value)}
+                className="flex w-full items-end justify-center"
+                style={{ height: plotH }}
+              >
+                <div
+                  className={`w-full max-w-[26px] rounded-t ${color} transition-all group-hover:opacity-80`}
+                  style={{ height: `${Math.max(2, (d.value / max) * plotH)}px` }}
+                  title={`${d.label}: ${formatValue(d.value)}`}
+                />
+              </div>
+              <div className="mt-1 h-3 text-center text-[9px] leading-3 text-ink-soft">
+                {i % labelEvery === 0 ? d.label : ""}
               </div>
             </div>
           ))}
         </div>
-      </div>
-      {/* label sumbu-x */}
-      <div className="mt-1 flex justify-around gap-1">
-        {data.map((d, i) => (
-          <div key={i} className="flex-1 text-center text-[9px] text-ink-soft">
-            {i % labelEvery === 0 ? d.label : ""}
-          </div>
-        ))}
       </div>
     </div>
   )

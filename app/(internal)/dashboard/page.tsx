@@ -1,5 +1,4 @@
-import { getDashboardData } from "@/lib/data/dashboard"
-import { listDashboardWidgets } from "@/lib/data/dashboard-widgets"
+import { getDashboardData, getDailySales } from "@/lib/data/dashboard"
 import {
   aggregateByHour,
   aggregateByDay,
@@ -8,13 +7,19 @@ import {
   topSellers,
 } from "@/lib/domain/report"
 import { resolveRange, type RangePreset } from "@/lib/domain/date-range"
-import { getDailySales } from "@/lib/data/dashboard"
-import { DashboardGrid } from "./dashboard-grid"
+import { Card } from "@/components/ui/card"
+import { StatCard } from "@/components/ui/stat-card"
+import { LineChart } from "@/components/ui/line-chart"
+import { DonutChart } from "@/components/ui/donut-chart"
+import { RadarChart } from "@/components/ui/radar-chart"
+import { RankBars } from "@/components/ui/rank-bars"
+import { BarChart } from "@/components/ui/bar-chart"
 import { RangeSelector } from "./range-selector"
-import type { WidgetData } from "./widget-renderer"
+import { TrendingUp, Receipt, ShoppingBag, Banknote } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
+const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
 export default async function DashboardPage({
@@ -26,11 +31,14 @@ export default async function DashboardPage({
   const preset = (range ?? "today") as RangePreset
   const r = resolveRange(preset)
 
-  const [data, prev, widgets] = await Promise.all([
+  const [data, prev] = await Promise.all([
     getDashboardData(r.start, r.end),
     getDashboardData(r.prevStart, r.prevEnd),
-    listDashboardWidgets(),
   ])
+
+  const avg = data.totalTransaksi > 0 ? data.totalOmzet / data.totalTransaksi : 0
+  const prevAvg =
+    prev.totalTransaksi > 0 ? prev.totalOmzet / prev.totalTransaksi : 0
 
   const last7 = resolveRange("7d")
   const last7Sales = await getDailySales(last7.start, last7.end)
@@ -40,51 +48,159 @@ export default async function DashboardPage({
     last7.end.slice(0, 10),
   )
 
-  const avg = data.totalTransaksi > 0 ? data.totalOmzet / data.totalTransaksi : 0
-  const prevAvg =
-    prev.totalTransaksi > 0 ? prev.totalOmzet / prev.totalTransaksi : 0
-  const hourly = aggregateByHour(data.lines)
-  const categories = aggregateByCategory(data.categoryLines)
   const sellers = topSellers(data.lines, 6)
+  const categories = aggregateByCategory(data.categoryLines)
 
-  const trend = (cur: number, pr: number) => {
+  const multiDay = r.days > 1
+  const daily = multiDay
+    ? aggregateByDay(data.datedSales, r.start.slice(0, 10), r.end.slice(0, 10))
+    : []
+  const hourly = aggregateByHour(data.lines)
+
+  const t = (cur: number, pr: number) => {
     const c = comparePeriod(cur, pr)
     return { percent: c.percent, direction: c.direction }
   }
 
-  const widgetData: WidgetData = {
-    omzet: data.totalOmzet,
-    transaksi: data.totalTransaksi,
-    rataTransaksi: avg,
-    itemTerjual: data.totalItem,
-    trends: {
-      omzet: trend(data.totalOmzet, prev.totalOmzet),
-      transaksi: trend(data.totalTransaksi, prev.totalTransaksi),
-      rata_transaksi: trend(avg, prevAvg),
-      item_terjual: trend(data.totalItem, prev.totalItem),
-    },
-    penjualanHarian: last7Daily.map((d) => {
-      const dt = new Date(d.date + "T00:00:00Z")
-      return {
-        label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
-        value: d.total,
-      }
-    }),
-    penjualanPerJam: hourly.map((val, hour) => ({
-      label: String(hour),
-      value: val,
-    })),
-    metodeBayar: { tunai: data.cashTotal, qris: data.qrisTotal },
-    omzetKategori: categories.map((c) => ({ label: c.category, value: c.omzet })),
-    produkTerlaris: sellers.map((s) => ({ label: s.name, value: s.qty })),
-  }
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-ink">Dashboard</h1>
         <RangeSelector />
       </div>
-      <DashboardGrid widgets={widgets} data={widgetData} />
+
+      {/* KPI dengan tren built-in vs periode sebelumnya */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Omzet"
+          tone="green"
+          icon={TrendingUp}
+          value={rupiah(data.totalOmzet)}
+          trend={t(data.totalOmzet, prev.totalOmzet)}
+        />
+        <StatCard
+          label="Transaksi"
+          tone="red"
+          icon={Receipt}
+          value={String(data.totalTransaksi)}
+          trend={t(data.totalTransaksi, prev.totalTransaksi)}
+        />
+        <StatCard
+          label="Rata/Transaksi"
+          tone="amber"
+          icon={Banknote}
+          value={rupiah(Math.round(avg))}
+          trend={t(avg, prevAvg)}
+        />
+        <StatCard
+          label="Item Terjual"
+          tone="blue"
+          icon={ShoppingBag}
+          value={String(data.totalItem)}
+          trend={t(data.totalItem, prev.totalItem)}
+        />
+      </div>
+
+      {/* Baris 1: Line 7 hari (2/3) + Donut metode bayar (1/3) */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
+            <span className="text-xs text-ink-soft">
+              Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
+            </span>
+          </div>
+          <LineChart
+            data={last7Daily.map((d) => {
+              const dt = new Date(d.date + "T00:00:00Z")
+              return {
+                label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
+                value: d.total,
+              }
+            })}
+            formatValue={rupiah}
+          />
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-semibold text-ink">Metode Pembayaran</h2>
+          <DonutChart
+            segments={[
+              { label: "Tunai", value: data.cashTotal, colorClass: "fill-success" },
+              { label: "QRIS", value: data.qrisTotal, colorClass: "fill-accent" },
+            ]}
+            formatValue={rupiah}
+          />
+        </Card>
+      </div>
+
+      {/* Baris 2: Radar produk terlaris + Bar per jam */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold text-ink">Produk Terlaris</h2>
+          {sellers.length > 0 ? (
+            <RadarChart
+              data={sellers.map((s) => ({ label: s.name, value: s.qty }))}
+            />
+          ) : (
+            <p className="py-8 text-center text-sm text-ink-soft">
+              Belum ada penjualan.
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
+          <BarChart
+            data={hourly.map((val, hour) => ({ label: String(hour), value: val }))}
+            color="bg-accent"
+            formatValue={rupiah}
+            labelEvery={2}
+          />
+        </Card>
+      </div>
+
+      {/* Baris 3: Omzet per kategori + Tren periode / ringkasan */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold text-ink">Omzet per Kategori</h2>
+          <RankBars
+            data={categories.map((c) => ({ label: c.category, value: c.omzet }))}
+            color="bg-accent"
+            formatValue={rupiah}
+            emptyText="Belum ada penjualan."
+          />
+        </Card>
+
+        {multiDay ? (
+          <Card>
+            <h2 className="mb-3 font-semibold text-ink">Tren Omzet Periode</h2>
+            <LineChart
+              data={daily.map((d) => ({ label: d.date.slice(8, 10), value: d.total }))}
+              formatValue={rupiah}
+              labelEvery={r.days > 14 ? 3 : 1}
+            />
+          </Card>
+        ) : (
+          <Card>
+            <h2 className="mb-3 font-semibold text-ink">Ringkasan</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-ink-soft">Tunai</dt>
+                <dd className="font-semibold text-ink">{rupiah(data.cashTotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-soft">QRIS</dt>
+                <dd className="font-semibold text-ink">{rupiah(data.qrisTotal)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-hairline pt-2">
+                <dt className="text-ink-soft">Total item terjual</dt>
+                <dd className="font-semibold text-ink">{data.totalItem}</dd>
+              </div>
+            </dl>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
