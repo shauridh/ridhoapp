@@ -3,8 +3,7 @@ import { listAkun, listOpex, listPiutang } from "@/lib/data/akun"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
-import { Collapsible } from "@/components/ui/collapsible"
-import { TrendingUp, Receipt, BarChart3, Wallet, PlusCircle } from "lucide-react"
+import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
 import { ManualEntryForm } from "./manual-entry-form"
 import { KeuanganManager } from "./keuangan-manager"
 
@@ -30,7 +29,10 @@ export default async function FinancePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-ink">Keuangan & Laporan</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-ink">Keuangan & Laporan</h1>
+        <ManualEntryForm categories={categories} />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard
@@ -58,10 +60,6 @@ export default async function FinancePage() {
           value={`Rp ${summary.totalCapex.toLocaleString("id-ID")}`}
         />
       </div>
-
-      <Collapsible title="Input Manual" icon={<PlusCircle size={18} />}>
-        <ManualEntryForm categories={categories} />
-      </Collapsible>
 
       <KeuanganManager akun={akun} opex={opex} piutang={piutang} />
 
