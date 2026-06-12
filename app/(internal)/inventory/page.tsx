@@ -4,6 +4,7 @@ import { avgDailyUsage } from "@/lib/domain/inventory"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
+import { PageHeader } from "@/components/ui/page-header"
 import { StockActionsPanel } from "./stock-actions-panel"
 import { IngredientForm } from "./ingredient-form"
 import {
@@ -32,19 +33,21 @@ export default async function InventoryPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-ink">Stok Bahan</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/inventory/shopping"
-            className="flex items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
-          >
-            <ShoppingCart size={16} /> Saran Belanja
-          </Link>
-          <StockActionsPanel ingredients={opts} />
-          <IngredientForm />
-        </div>
-      </div>
+      <PageHeader
+        title="Stok Bahan"
+        actions={
+          <>
+            <Link
+              href="/inventory/shopping"
+              className="flex min-h-[44px] items-center gap-1 rounded-xl bg-brand/10 px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+            >
+              <ShoppingCart size={16} /> Saran Belanja
+            </Link>
+            <StockActionsPanel ingredients={opts} />
+            <IngredientForm />
+          </>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
@@ -84,8 +87,8 @@ export default async function InventoryPage() {
               <tr className="bg-surface text-left text-ink-soft">
                 <th className="px-4 py-3">Bahan</th>
                 <th className="px-4 py-3 text-right">Stok</th>
-                <th className="px-4 py-3 text-right">Batas Menipis</th>
-                <th className="px-4 py-3 text-right">Pakai/Hari</th>
+                <th className="hidden px-4 py-3 text-right md:table-cell">Batas Menipis</th>
+                <th className="hidden px-4 py-3 text-right lg:table-cell">Pakai/Hari</th>
                 <th className="px-4 py-3 text-right">Estimasi Sisa</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
@@ -109,10 +112,10 @@ export default async function InventoryPage() {
                       <span className="font-semibold">{fmt(i.stock_qty)}</span>{" "}
                       <span className="text-xs text-ink-soft">{i.unit}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-ink-soft">
+                    <td className="hidden px-4 py-3 text-right text-ink-soft md:table-cell">
                       {fmt(i.low_stock_threshold)} {i.unit}
                     </td>
-                    <td className="px-4 py-3 text-right text-ink-soft">
+                    <td className="hidden px-4 py-3 text-right text-ink-soft lg:table-cell">
                       {perDay > 0 ? `${fmt(perDay)} ${i.unit}` : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">

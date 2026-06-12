@@ -1,7 +1,8 @@
 "use client"
 
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useRef } from "react"
 import { X } from "lucide-react"
+import { useOverlayA11y } from "./use-overlay-a11y"
 
 type Size = "sm" | "md" | "lg"
 
@@ -28,14 +29,8 @@ export function Modal({
   children,
   footer,
 }: ModalProps) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open, onClose])
+  const panelRef = useRef<HTMLDivElement>(null)
+  useOverlayA11y(open, onClose, panelRef)
 
   if (!open) return null
 
@@ -45,13 +40,22 @@ export function Modal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
         className={`flex max-h-[90vh] w-full ${sizeClass[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
             <h3 className="text-lg font-semibold text-ink">{title}</h3>
-            <button onClick={onClose} aria-label="Tutup" className="text-ink-soft">
+            <button
+              onClick={onClose}
+              aria-label="Tutup"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+            >
               <X size={20} />
             </button>
           </div>

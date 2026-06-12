@@ -80,7 +80,7 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
                 <button
                   key={n}
                   onClick={() => setPaid(n)}
-                  className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${
+                  className={`min-h-[44px] rounded-lg border px-2 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
                     paid === n
                       ? "border-brand bg-tint-red text-brand"
                       : "border-hairline bg-white text-ink hover:bg-surface"

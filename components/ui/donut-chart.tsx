@@ -61,7 +61,7 @@ export function DonutChart({ segments, formatValue = (n) => String(n) }: Props) 
             ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[10px] uppercase tracking-wide text-ink-soft">
+          <span className="text-2xs uppercase tracking-wide text-ink-soft">
             Total
           </span>
           <span className="text-sm font-bold text-ink">

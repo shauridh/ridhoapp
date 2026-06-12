@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Receipt, Bookmark, Bell, History } from "lucide-react"
+import { Receipt, Bookmark, Bell, History, ShoppingCart } from "lucide-react"
 import type { ProductRow } from "@/lib/data/products"
 import type { VariantRow } from "@/lib/data/products"
 import { createClient } from "@/lib/supabase/client"
@@ -45,6 +45,7 @@ interface Props {
 export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
   const [cart, setCart] = useState<Cart>(createCart())
   const [products, setProducts] = useState<ProductRow[]>([])
+  const [productsLoading, setProductsLoading] = useState(true)
   const [variants, setVariants] = useState<Record<string, VariantRow[]>>({})
   const [pendingProduct, setPendingProduct] = useState<ProductRow | null>(null)
   const [loading, setLoading] = useState(false)
@@ -55,6 +56,7 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string | null>(null)
   const [showPayment, setShowPayment] = useState(false)
+  const [showCartSheet, setShowCartSheet] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
   const [heldRefresh, setHeldRefresh] = useState(0)
   const online = useOnlineOrders()
@@ -68,8 +70,12 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
       .select("*")
       .eq("is_active", true)
       .order("name")
-      .then(({ data }) => setProducts(data ?? []))
-  }, [])
+      .then(({ data, error }) => {
+        if (error) toast.show("Gagal memuat produk", "error")
+        setProducts(data ?? [])
+        setProductsLoading(false)
+      })
+  }, [toast])
 
   useEffect(() => {
     const saved = localStorage.getItem("pos.gridCols")
@@ -196,7 +202,7 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-52px)] flex-col">
+    <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
       <div className="mb-2 flex items-center justify-end gap-2">
         <HeaderIcon
           icon={Bookmark}
@@ -211,14 +217,16 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
         />
         <Link
           href="/pos/history"
-          className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+          aria-label="Riwayat transaksi"
+          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
         >
           <History size={18} className="text-brand" />
           <span className="hidden sm:inline">Riwayat</span>
         </Link>
         <button
           onClick={() => setPanel("shift")}
-          className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+          aria-label="Kelola shift"
+          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
         >
           <span className="flex h-2 w-2 rounded-full bg-success" />
           <Receipt size={18} className="text-brand" />
@@ -226,10 +234,11 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
         </button>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <div className="flex-1 overflow-y-auto pr-4">
+      <div className="flex min-h-0 flex-1 gap-4">
+        <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
           <ProductGrid
             products={products}
+            loading={productsLoading}
             onSelect={handleSelectProduct}
             cols={cols}
             cartQty={cartQty}
@@ -241,7 +250,8 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
           />
         </div>
 
-        <div className="flex w-80 flex-col border-l border-hairline pl-4">
+        {/* Cart sidebar: hanya tampil di layar lebar (lg+) */}
+        <div className="hidden w-80 flex-col border-l border-hairline pl-4 lg:flex">
           <CartView
             cart={cart}
             onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
@@ -253,6 +263,49 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
           />
         </div>
       </div>
+
+      {/* Bar keranjang melayang (HP/tablet sempit) */}
+      {cart.length > 0 && (
+        <button
+          onClick={() => setShowCartSheet(true)}
+          className="fixed inset-x-3 bottom-20 z-30 flex items-center justify-between rounded-2xl bg-brand px-4 py-3 text-white shadow-lg active:scale-[0.99] lg:hidden"
+        >
+          <span className="flex items-center gap-2 font-semibold">
+            <ShoppingCart size={18} />
+            {cart.reduce((s, i) => s + i.qty, 0)} item
+          </span>
+          <span className="font-bold">
+            Rp {cartTotal(cart).toLocaleString("id-ID")}
+          </span>
+        </button>
+      )}
+
+      {/* Cart sebagai bottom-sheet di HP/tablet sempit */}
+      {showCartSheet && (
+        <div
+          className="fixed inset-0 z-40 flex items-end bg-black/40 lg:hidden"
+          onClick={() => setShowCartSheet(false)}
+        >
+          <div
+            className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-hairline" />
+            <CartView
+              cart={cart}
+              onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
+              onRemove={(i) => setCart((prev) => removeItem(prev, i))}
+              onClear={() => setCart(createCart())}
+              onHold={handleHold}
+              onPay={() => {
+                setShowCartSheet(false)
+                setShowPayment(true)
+              }}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
 
       {pendingProduct && (
         <VariantPicker
@@ -341,12 +394,13 @@ function HeaderIcon({
   return (
     <button
       onClick={onClick}
-      className="relative flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+      aria-label={label}
+      className="relative flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
     >
       <Icon size={18} className="text-brand" />
       <span className="hidden sm:inline">{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-2xs font-bold text-white">
           {badge}
         </span>
       )}

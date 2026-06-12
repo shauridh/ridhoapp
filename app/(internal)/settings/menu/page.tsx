@@ -5,6 +5,7 @@ import { ProductForm } from "./product-form"
 import { CategoryManager } from "./category-manager"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PageHeader } from "@/components/ui/page-header"
 import { UtensilsCrossed } from "lucide-react"
 
 export default async function MenuPage() {
@@ -15,13 +16,15 @@ export default async function MenuPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-ink">Kelola Menu</h1>
-        <div className="flex items-center gap-2">
-          <CategoryManager categories={categories} />
-          <ProductForm categories={categories} />
-        </div>
-      </div>
+      <PageHeader
+        title="Kelola Menu"
+        actions={
+          <>
+            <CategoryManager categories={categories} />
+            <ProductForm categories={categories} />
+          </>
+        }
+      />
 
       {products.length === 0 ? (
         <Card className="flex flex-col items-center gap-2 py-12 text-center">

@@ -20,7 +20,7 @@ export function RangeSelector() {
         <button
           key={p.key}
           onClick={() => router.push(`/dashboard?range=${p.key}`)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+          className={`min-h-[44px] rounded-lg px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
             current === p.key
               ? "bg-brand text-white"
               : "bg-white text-ink-soft hover:bg-surface"

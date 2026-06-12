@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
 import { X } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { useOverlayA11y } from "./use-overlay-a11y"
 
 interface Props {
   title: string
@@ -20,18 +21,17 @@ export function SlideOver({
   children,
   widthClass = "max-w-md",
 }: Props) {
-  // Tutup dengan tombol Escape.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
+  const panelRef = useRef<HTMLDivElement>(null)
+  useOverlayA11y(true, onClose, panelRef)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
         className={`flex w-full ${widthClass} flex-col overflow-y-auto bg-surface shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -40,8 +40,12 @@ export function SlideOver({
             {Icon && <Icon size={18} className="text-brand" />}
             {title}
           </h2>
-          <button onClick={onClose} aria-label="Tutup panel">
-            <X size={20} className="text-ink-soft" />
+          <button
+            onClick={onClose}
+            aria-label="Tutup panel"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+          >
+            <X size={20} />
           </button>
         </div>
         <div className="flex-1 p-4">{children}</div>

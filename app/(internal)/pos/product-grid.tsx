@@ -12,6 +12,7 @@ import { CategoryChips } from "./category-chips"
 
 interface Props {
   products: ProductRow[]
+  loading?: boolean
   onSelect: (product: ProductRow) => void
   cols: GridSetting
   cartQty: Record<string, number>
@@ -24,6 +25,7 @@ interface Props {
 
 export function ProductGrid({
   products,
+  loading = false,
   onSelect,
   cols,
   cartQty,
@@ -66,7 +68,21 @@ export function ProductGrid({
       </div>
 
       <div className="grid gap-3" style={gridStyle(cols)}>
-        {visible.map((p) => {
+        {loading &&
+          Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={`sk-${i}`}
+              className="overflow-hidden rounded-2xl border border-hairline bg-white"
+            >
+              <div className="aspect-square animate-pulse bg-surface" />
+              <div className="space-y-1 p-2">
+                <div className="mx-auto h-3 w-3/4 animate-pulse rounded bg-surface" />
+                <div className="mx-auto h-3 w-1/2 animate-pulse rounded bg-surface" />
+              </div>
+            </div>
+          ))}
+        {!loading &&
+          visible.map((p) => {
           const qty = cartQty[p.id] ?? 0
           return (
             <button
@@ -102,7 +118,7 @@ export function ProductGrid({
             </button>
           )
         })}
-        {visible.length === 0 && (
+        {!loading && visible.length === 0 && (
           <p className="col-span-full py-8 text-center text-ink-soft">
             {products.length === 0
               ? "Belum ada produk aktif."

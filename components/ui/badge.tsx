@@ -4,9 +4,9 @@ type Tone = "neutral" | "accent" | "success" | "danger"
 
 const tones: Record<Tone, string> = {
   neutral: "bg-surface text-ink-soft",
-  accent: "bg-accent text-ink",
-  success: "bg-green-100 text-success",
-  danger: "bg-red-100 text-danger",
+  accent: "bg-tint-amber text-ink",
+  success: "bg-tint-green text-success",
+  danger: "bg-tint-red text-danger",
 }
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

@@ -13,6 +13,7 @@ import { LineChart } from "@/components/ui/line-chart"
 import { DonutChart } from "@/components/ui/donut-chart"
 import { RadarChart } from "@/components/ui/radar-chart"
 import { RankBars } from "@/components/ui/rank-bars"
+import { PageHeader } from "@/components/ui/page-header"
 import { RangeSelector } from "./range-selector"
 import { TrendingUp, Receipt, ShoppingBag, Banknote } from "lucide-react"
 
@@ -63,10 +64,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-ink">Dashboard</h1>
-        <RangeSelector />
-      </div>
+      <PageHeader title="Dashboard" actions={<RangeSelector />} />
 
       {/* KPI dengan tren built-in vs periode sebelumnya */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -158,7 +156,7 @@ export default async function DashboardPage({
             formatValue={rupiah}
             labelEvery={2}
           />
-          <p className="mt-1 text-center text-[10px] text-ink-faint">
+          <p className="mt-1 text-center text-2xs text-ink-faint">
             Jam operasional (08.00 - 22.00)
           </p>
         </Card>

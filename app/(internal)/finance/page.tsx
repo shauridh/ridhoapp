@@ -3,6 +3,7 @@ import { listAkun, listOpex, listPiutang } from "@/lib/data/akun"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
+import { PageHeader } from "@/components/ui/page-header"
 import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
 import { ManualEntryForm } from "./manual-entry-form"
 import { KeuanganManager } from "./keuangan-manager"
@@ -29,12 +30,12 @@ export default async function FinancePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-ink">Keuangan & Laporan</h1>
-        <ManualEntryForm categories={categories} />
-      </div>
+      <PageHeader
+        title="Keuangan & Laporan"
+        actions={<ManualEntryForm categories={categories} />}
+      />
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Pemasukan"
           tone="green"

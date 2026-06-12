@@ -64,7 +64,12 @@ export function Sidebar() {
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-2">
         {links.map((l) => {
-          const active = pathname === l.href || pathname.startsWith(l.href + "/")
+          // "/settings" (Pengaturan) pakai exact match karena "/settings/menu"
+          // adalah item nav terpisah (Menu). Lainnya match sub-route.
+          const active =
+            l.href === "/settings"
+              ? pathname === "/settings"
+              : pathname === l.href || pathname.startsWith(l.href + "/")
           const Icon = l.icon
           return (
             <a

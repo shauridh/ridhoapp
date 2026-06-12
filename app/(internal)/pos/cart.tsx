@@ -66,8 +66,8 @@ export function CartView({
                 <span className="font-medium text-ink">{item.name}</span>
                 <button
                   onClick={() => onRemove(idx)}
-                  className="text-danger"
-                  aria-label="Hapus item"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-danger transition hover:bg-tint-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
+                  aria-label={`Hapus ${item.name}`}
                 >
                   ✕
                 </button>

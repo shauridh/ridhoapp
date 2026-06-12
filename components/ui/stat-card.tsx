@@ -6,14 +6,14 @@ const toneChip: Record<Tone, string> = {
   red: "bg-tint-red text-brand",
   green: "bg-tint-green text-success",
   amber: "bg-tint-amber text-accent",
-  blue: "bg-tint-blue text-blue-600",
+  blue: "bg-tint-blue text-info",
 }
 
 const toneValue: Record<Tone, string> = {
   red: "text-brand",
   green: "text-success",
   amber: "text-ink",
-  blue: "text-blue-600",
+  blue: "text-info",
 }
 
 interface Trend {
@@ -74,7 +74,7 @@ export function StatCard({
       </div>
       <p className={`text-2xl font-bold ${toneValue[tone]}`}>{value}</p>
       {trend && (
-        <p className="mt-0.5 text-[11px] text-ink-faint">vs periode sebelumnya</p>
+        <p className="mt-0.5 text-2xs text-ink-faint">vs periode sebelumnya</p>
       )}
     </div>
   )

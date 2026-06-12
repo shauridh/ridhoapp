@@ -30,7 +30,7 @@ export function RankBars({
         <div key={i}>
           <div className="mb-1 flex items-baseline justify-between text-sm">
             <span className="flex items-center gap-2 text-ink">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-bold text-ink-soft">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-2xs font-bold text-ink-soft">
                 {i + 1}
               </span>
               {d.label}

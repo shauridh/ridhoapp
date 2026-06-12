@@ -30,16 +30,21 @@ export function Button({
   loading = false,
   icon: Icon,
   disabled,
+  type,
   className = "",
   children,
   ...props
 }: ButtonProps) {
   return (
     <button
+      type={type ?? "button"}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
+      {loading && (
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      )}
       {Icon && !loading && <Icon size={18} />}
       {loading ? "Memuat..." : children}
     </button>
