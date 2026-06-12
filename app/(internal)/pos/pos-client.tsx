@@ -9,7 +9,9 @@ import { createCart, addItem, removeItem, updateQty, cartTotal } from "@/lib/dom
 import type { Cart, CartVariant } from "@/lib/domain/cart"
 import type { GridSetting } from "@/lib/domain/grid"
 import { useToast } from "@/components/ui/toast"
+import { useDialog } from "@/components/ui/dialog"
 import { checkout } from "./actions"
+import { holdOrder } from "./held-actions"
 import { ProductGrid } from "./product-grid"
 import { CartView } from "./cart"
 import { VariantPicker } from "./variant-picker"
@@ -17,6 +19,7 @@ import { PaymentModal } from "./payment-modal"
 import { Receipt as ReceiptModal } from "./receipt"
 import { OrderHistory } from "./order-history"
 import { OnlineOrders } from "./online-orders"
+import { HeldOrders } from "./held-orders"
 import { ShiftPanel } from "./shift-panel"
 
 interface ReceiptState {
@@ -48,7 +51,9 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   const [category, setCategory] = useState<string | null>(null)
   const [showPayment, setShowPayment] = useState(false)
   const [showShift, setShowShift] = useState(false)
+  const [heldRefresh, setHeldRefresh] = useState(0)
   const toast = useToast()
+  const dialog = useDialog()
 
   useEffect(() => {
     const supabase = createClient()
@@ -112,6 +117,29 @@ export function PosClient({ shiftId, openingBalance }: Props) {
       })
     )
     setPendingProduct(null)
+  }
+
+  // Simpan cart sebagai pesanan tersimpan, lalu kosongkan kasir.
+  const handleHold = async () => {
+    if (cart.length === 0) return
+    const label = await dialog.prompt(
+      "Nama/nomor pesanan (mis. Meja 3 / Budi):",
+      "Simpan Pesanan",
+    )
+    if (label === null) return
+    const result = await holdOrder(label, cart)
+    if (result.ok) {
+      setCart(createCart())
+      setHeldRefresh((k) => k + 1)
+      toast.show("Pesanan disimpan", "success")
+    } else {
+      toast.show(result.error, "error")
+    }
+  }
+
+  // Lanjutkan pesanan tersimpan ke keranjang aktif.
+  const handleResume = (saved: Cart) => {
+    setCart((prev) => (prev.length === 0 ? saved : [...prev, ...saved]))
   }
 
   const handleCheckout = async (
@@ -195,9 +223,13 @@ export function PosClient({ shiftId, openingBalance }: Props) {
             onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
             onRemove={(i) => setCart((prev) => removeItem(prev, i))}
             onClear={() => setCart(createCart())}
+            onHold={handleHold}
             onPay={() => setShowPayment(true)}
             disabled={loading}
           />
+          <div className="mt-4">
+            <HeldOrders refreshKey={heldRefresh} onResume={handleResume} />
+          </div>
           <div className="mt-4">
             <OnlineOrders />
           </div>

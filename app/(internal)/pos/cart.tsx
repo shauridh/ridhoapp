@@ -3,13 +3,14 @@
 import type { Cart } from "@/lib/domain/cart"
 import { cartTotal } from "@/lib/domain/cart"
 import { Button } from "@/components/ui/button"
-import { CreditCard, Trash2 } from "lucide-react"
+import { CreditCard, Trash2, Bookmark } from "lucide-react"
 
 interface Props {
   cart: Cart
   onUpdateQty: (index: number, qty: number) => void
   onRemove: (index: number) => void
   onClear: () => void
+  onHold: () => void
   onPay: () => void
   disabled: boolean
 }
@@ -19,6 +20,7 @@ export function CartView({
   onUpdateQty,
   onRemove,
   onClear,
+  onHold,
   onPay,
   disabled,
 }: Props) {
@@ -109,16 +111,27 @@ export function CartView({
           <span>Total</span>
           <span>Rp {cartTotal(cart).toLocaleString("id-ID")}</span>
         </div>
-        <Button
-          variant="primary"
-          size="lg"
-          icon={CreditCard}
-          onClick={onPay}
-          disabled={disabled || cart.length === 0}
-          className="w-full"
-        >
-          Bayar{totalItem > 0 ? ` (${totalItem})` : ""}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="lg"
+            icon={Bookmark}
+            onClick={onHold}
+            disabled={disabled || cart.length === 0}
+          >
+            Simpan
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            icon={CreditCard}
+            onClick={onPay}
+            disabled={disabled || cart.length === 0}
+            className="flex-1"
+          >
+            Bayar{totalItem > 0 ? ` (${totalItem})` : ""}
+          </Button>
+        </div>
       </div>
     </div>
   )
