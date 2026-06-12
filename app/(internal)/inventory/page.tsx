@@ -49,13 +49,13 @@ export default async function InventoryPage() {
       </div>
 
       <div className="space-y-3">
-        <Collapsible title="Tambah Bahan" icon={Plus}>
+        <Collapsible title="Tambah Bahan" icon={<Plus size={18} />}>
           <IngredientForm />
         </Collapsible>
-        <Collapsible title="Restock & Penyesuaian" icon={PackagePlus}>
+        <Collapsible title="Restock & Penyesuaian" icon={<PackagePlus size={18} />}>
           <StockActionsForm ingredients={opts} />
         </Collapsible>
-        <Collapsible title="Opname & Import Massal" icon={ClipboardCheck}>
+        <Collapsible title="Opname & Import Massal" icon={<ClipboardCheck size={18} />}>
           <OpnameBulkForms ingredients={opts} />
         </Collapsible>
       </div>

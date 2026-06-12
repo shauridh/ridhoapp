@@ -2,11 +2,10 @@
 
 import { useState, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 
 interface Props {
   title: string
-  icon?: LucideIcon
+  icon?: ReactNode
   defaultOpen?: boolean
   children: ReactNode
 }
@@ -14,7 +13,7 @@ interface Props {
 // Panel yang bisa dibuka-tutup untuk menyembunyikan form sampai dibutuhkan.
 export function Collapsible({
   title,
-  icon: Icon,
+  icon,
   defaultOpen = false,
   children,
 }: Props) {
@@ -27,7 +26,7 @@ export function Collapsible({
         className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-surface/60"
       >
         <span className="flex items-center gap-2 font-semibold text-ink">
-          {Icon && <Icon size={18} className="text-brand" />}
+          {icon && <span className="text-brand">{icon}</span>}
           {title}
         </span>
         <ChevronDown

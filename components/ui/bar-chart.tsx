@@ -1,5 +1,3 @@
-"use client"
-
 interface Bar {
   label: string
   value: number

@@ -59,7 +59,7 @@ export default async function FinancePage() {
         />
       </div>
 
-      <Collapsible title="Input Manual" icon={PlusCircle}>
+      <Collapsible title="Input Manual" icon={<PlusCircle size={18} />}>
         <ManualEntryForm categories={categories} />
       </Collapsible>
 
