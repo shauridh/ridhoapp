@@ -1,15 +1,33 @@
 "use client"
 
 import { type ReactNode, useEffect } from "react"
+import { X } from "lucide-react"
+
+type Size = "sm" | "md" | "lg"
 
 interface ModalProps {
   open: boolean
   onClose: () => void
   title?: string
+  size?: Size
   children: ReactNode
+  footer?: ReactNode
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+const sizeClass: Record<Size, string> = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+}
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  size = "md",
+  children,
+  footer,
+}: ModalProps) {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -27,11 +45,21 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-5 shadow-lg"
+        className={`flex max-h-[90vh] w-full ${sizeClass[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <h3 className="mb-3 text-lg font-semibold text-ink">{title}</h3>}
-        {children}
+        {title && (
+          <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
+            <h3 className="text-lg font-semibold text-ink">{title}</h3>
+            <button onClick={onClose} aria-label="Tutup" className="text-ink-soft">
+              <X size={20} />
+            </button>
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && (
+          <div className="border-t border-hairline px-5 py-3">{footer}</div>
+        )}
       </div>
     </div>
   )

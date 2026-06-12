@@ -1,18 +1,26 @@
 import Link from "next/link"
 import { listProducts } from "@/lib/data/products"
+import { listCategories } from "@/lib/data/categories"
 import { ProductForm } from "./product-form"
+import { CategoryManager } from "./category-manager"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UtensilsCrossed } from "lucide-react"
 
 export default async function MenuPage() {
-  const products = await listProducts()
+  const [products, categories] = await Promise.all([
+    listProducts(),
+    listCategories(),
+  ])
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink">Kelola Menu</h1>
-        <ProductForm />
+        <div className="flex items-center gap-2">
+          <CategoryManager categories={categories} />
+          <ProductForm categories={categories} />
+        </div>
       </div>
 
       {products.length === 0 ? (
