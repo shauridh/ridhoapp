@@ -3,68 +3,98 @@ import { listProducts } from "@/lib/data/products"
 import { ProductForm } from "./product-form"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { UtensilsCrossed } from "lucide-react"
 
 export default async function MenuPage() {
   const products = await listProducts()
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-ink">Kelola Menu</h1>
-      <ProductForm />
-      <Card className="p-0 overflow-hidden">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-surface text-left text-ink-soft">
-              <th className="px-3 py-2">Nama</th>
-              <th className="px-3 py-2">Kategori</th>
-              <th className="px-3 py-2">Tipe</th>
-              <th className="px-3 py-2 text-right">Harga</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-hairline text-ink">
-                <td className="px-3 py-2">{p.name}</td>
-                <td className="px-3 py-2">{p.category}</td>
-                <td className="px-3 py-2">
-                  {p.type === "combo" ? (
-                    <Badge tone="accent">Paket</Badge>
-                  ) : (
-                    <Badge tone="neutral">Satuan</Badge>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right font-bold text-brand">
-                  Rp {p.base_price.toLocaleString("id-ID")}
-                </td>
-                <td className="px-3 py-2">
-                  {p.is_active ? (
-                    <Badge tone="success">Aktif</Badge>
-                  ) : (
-                    <Badge tone="danger">Nonaktif</Badge>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <Link
-                    href={`/settings/menu/${p.id}`}
-                    className="text-brand"
-                  >
-                    Kelola
-                  </Link>
-                </td>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-ink">Kelola Menu</h1>
+        <ProductForm />
+      </div>
+
+      {products.length === 0 ? (
+        <Card className="flex flex-col items-center gap-2 py-12 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-ink-soft">
+            <UtensilsCrossed size={26} />
+          </div>
+          <p className="font-medium text-ink">Belum ada produk</p>
+          <p className="text-sm text-ink-soft">
+            Tambahkan produk pertama lewat tombol Tambah Produk.
+          </p>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-surface text-left text-ink-soft">
+                <th className="px-4 py-3">Produk</th>
+                <th className="px-4 py-3">Kategori</th>
+                <th className="px-4 py-3">Tipe</th>
+                <th className="px-4 py-3 text-right">Harga</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-            {products.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-4 text-center text-ink-soft">
-                  Belum ada produk.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </Card>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr
+                  key={p.id}
+                  className="border-b border-hairline last:border-0 transition hover:bg-surface/50"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface">
+                        {p.image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-lg">
+                            🍗
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium text-ink">{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft">{p.category || "-"}</td>
+                  <td className="px-4 py-3">
+                    {p.type === "combo" ? (
+                      <Badge tone="accent">Paket</Badge>
+                    ) : (
+                      <Badge tone="neutral">Satuan</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-brand">
+                    Rp {p.base_price.toLocaleString("id-ID")}
+                  </td>
+                  <td className="px-4 py-3">
+                    {p.is_active ? (
+                      <Badge tone="success">Aktif</Badge>
+                    ) : (
+                      <Badge tone="danger">Nonaktif</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/settings/menu/${p.id}`}
+                      className="font-semibold text-brand hover:underline"
+                    >
+                      Kelola
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
     </div>
   )
 }

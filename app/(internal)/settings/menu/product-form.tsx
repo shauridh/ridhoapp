@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Upload } from "lucide-react"
+import { Upload, Plus, X } from "lucide-react"
 import { createProduct } from "./actions"
 import { uploadProductImage } from "./image-actions"
 import { Card } from "@/components/ui/card"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input, Select } from "@/components/ui/input"
 
 export function ProductForm() {
+  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState("")
   const [uploading, setUploading] = useState(false)
@@ -30,31 +31,48 @@ export function ProductForm() {
     }
   }
 
+  if (!open) {
+    return (
+      <Button variant="primary" icon={Plus} onClick={() => setOpen(true)}>
+        Tambah Produk
+      </Button>
+    )
+  }
+
   return (
     <Card>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-semibold text-ink">Produk Baru</h2>
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Tutup"
+          className="text-ink-soft"
+        >
+          <X size={20} />
+        </button>
+      </div>
       <form
         action={(formData) => {
           setError(null)
           startTransition(async () => {
             const result = await createProduct(formData)
-            if (!result.ok) setError(result.error)
+            if (result.ok) {
+              setOpen(false)
+              setImageUrl("")
+            } else {
+              setError(result.error)
+            }
           })
         }}
-        className="flex flex-wrap items-end gap-3"
+        className="space-y-4"
       >
-        <div className="flex-1 min-w-[8rem]">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Input label="Nama" name="name" required />
-        </div>
-        <div className="flex-1 min-w-[8rem]">
-          <Input label="Kategori" name="category" />
-        </div>
-        <div className="flex-1 min-w-[8rem]">
+          <Input label="Kategori" name="category" placeholder="mis. Ayam" />
           <Select label="Tipe" name="type">
             <option value="single">Satuan</option>
             <option value="combo">Paket</option>
           </Select>
-        </div>
-        <div className="w-32">
           <Input
             label="Harga"
             name="basePrice"
@@ -63,38 +81,47 @@ export function ProductForm() {
             defaultValue={0}
           />
         </div>
-        <div className="w-56">
-          <Input
-            label="URL Gambar"
-            name="imageUrl"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://... atau unggah"
-          />
+
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Input
+              label="URL Gambar"
+              name="imageUrl"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://... atau unggah"
+            />
+          </div>
+          <label className="flex h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-hairline bg-white px-4 text-sm font-semibold text-ink hover:bg-surface">
+            <Upload size={18} />
+            {uploading ? "Mengunggah..." : "Unggah"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFile}
+              disabled={uploading}
+            />
+          </label>
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt="Pratinjau"
+              className="h-11 w-11 rounded-lg object-cover"
+            />
+          )}
         </div>
-        <label className="flex h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-hairline bg-white px-4 text-sm font-semibold text-ink hover:bg-surface">
-          <Upload size={18} />
-          {uploading ? "Mengunggah..." : "Unggah"}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFile}
-            disabled={uploading}
-          />
-        </label>
-        <Button type="submit" variant="primary" disabled={pending || uploading}>
-          {pending ? "Menyimpan..." : "Tambah"}
-        </Button>
-        {imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt="Pratinjau"
-            className="h-12 w-12 rounded-lg object-cover"
-          />
-        )}
-        {error && <p className="w-full text-sm text-danger">{error}</p>}
+
+        <div className="flex gap-2">
+          <Button type="submit" variant="primary" disabled={pending || uploading}>
+            {pending ? "Menyimpan..." : "Simpan Produk"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            Batal
+          </Button>
+        </div>
+        {error && <p className="text-sm text-danger">{error}</p>}
       </form>
     </Card>
   )
