@@ -13,7 +13,6 @@ import { LineChart } from "@/components/ui/line-chart"
 import { DonutChart } from "@/components/ui/donut-chart"
 import { RadarChart } from "@/components/ui/radar-chart"
 import { RankBars } from "@/components/ui/rank-bars"
-import { BarChart } from "@/components/ui/bar-chart"
 import { RangeSelector } from "./range-selector"
 import { TrendingUp, Receipt, ShoppingBag, Banknote } from "lucide-react"
 
@@ -151,12 +150,17 @@ export default async function DashboardPage({
 
         <Card>
           <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
-          <BarChart
-            data={hourly.map((val, hour) => ({ label: String(hour), value: val }))}
-            color="bg-accent"
+          <LineChart
+            data={hourly
+              .map((val, hour) => ({ hour, val }))
+              .filter((h) => h.hour >= 8 && h.hour <= 22)
+              .map((h) => ({ label: `${h.hour}`, value: h.val }))}
             formatValue={rupiah}
             labelEvery={2}
           />
+          <p className="mt-1 text-center text-[10px] text-ink-faint">
+            Jam operasional (08.00 - 22.00)
+          </p>
         </Card>
       </div>
 

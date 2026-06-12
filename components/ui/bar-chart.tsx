@@ -39,7 +39,7 @@ export function BarChart({
         </div>
 
         {/* kolom: bar + label menyatu per sel */}
-        <div className="flex items-end">
+        <div className="flex items-end gap-1">
           {data.map((d, i) => (
             <div key={i} className="group flex flex-1 flex-col items-center">
               <div
@@ -47,12 +47,12 @@ export function BarChart({
                 style={{ height: plotH }}
               >
                 <div
-                  className={`w-full max-w-[26px] rounded-t ${color} transition-all group-hover:opacity-80`}
+                  className={`w-full max-w-[32px] rounded-t ${color} transition-all group-hover:opacity-80`}
                   style={{ height: `${Math.max(2, (d.value / max) * plotH)}px` }}
                   title={`${d.label}: ${formatValue(d.value)}`}
                 />
               </div>
-              <div className="mt-1 h-3 text-center text-[9px] leading-3 text-ink-soft">
+              <div className="mt-1 h-3 truncate text-center text-[9px] leading-3 text-ink-soft">
                 {i % labelEvery === 0 ? d.label : ""}
               </div>
             </div>
