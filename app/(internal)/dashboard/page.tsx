@@ -1,4 +1,4 @@
-import { getDashboardData, getOmzetForRange, getDailySales } from "@/lib/data/dashboard"
+import { getDashboardData, getDailySales } from "@/lib/data/dashboard"
 import {
   aggregateByHour,
   aggregateByDay,
@@ -9,23 +9,17 @@ import {
 import { resolveRange, type RangePreset } from "@/lib/domain/date-range"
 import { Card } from "@/components/ui/card"
 import { StatCard } from "@/components/ui/stat-card"
-import { BarChart } from "@/components/ui/bar-chart"
+import { LineChart } from "@/components/ui/line-chart"
+import { DonutChart } from "@/components/ui/donut-chart"
+import { RadarChart } from "@/components/ui/radar-chart"
 import { RankBars } from "@/components/ui/rank-bars"
-import { SplitBar } from "@/components/ui/split-bar"
+import { BarChart } from "@/components/ui/bar-chart"
 import { RangeSelector } from "./range-selector"
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Receipt,
-  ShoppingBag,
-  Banknote,
-} from "lucide-react"
+import { TrendingUp, Receipt, ShoppingBag, Banknote } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
-
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
 
 export default async function DashboardPage({
@@ -37,9 +31,15 @@ export default async function DashboardPage({
   const preset = (range ?? "today") as RangePreset
   const r = resolveRange(preset)
 
-  const data = await getDashboardData(r.start, r.end)
-  const prevOmzet = await getOmzetForRange(r.prevStart, r.prevEnd)
-  const cmp = comparePeriod(data.totalOmzet, prevOmzet)
+  // Data periode ini & periode sebelumnya (untuk tren semua metrik).
+  const [data, prev] = await Promise.all([
+    getDashboardData(r.start, r.end),
+    getDashboardData(r.prevStart, r.prevEnd),
+  ])
+
+  const avg = data.totalTransaksi > 0 ? data.totalOmzet / data.totalTransaksi : 0
+  const prevAvg =
+    prev.totalTransaksi > 0 ? prev.totalOmzet / prev.totalTransaksi : 0
 
   // Tren 7 hari terakhir SELALU tampil, lepas dari rentang yang dipilih.
   const last7 = resolveRange("7d")
@@ -50,9 +50,8 @@ export default async function DashboardPage({
     last7.end.slice(0, 10),
   )
 
-  const sellers = topSellers(data.lines, 5)
+  const sellers = topSellers(data.lines, 6)
   const categories = aggregateByCategory(data.categoryLines)
-  const avg = data.totalTransaksi > 0 ? data.totalOmzet / data.totalTransaksi : 0
 
   const multiDay = r.days > 1
   const daily = multiDay
@@ -60,14 +59,10 @@ export default async function DashboardPage({
     : []
   const hourly = aggregateByHour(data.lines)
 
-  const TrendIcon =
-    cmp.direction === "up" ? TrendingUp : cmp.direction === "down" ? TrendingDown : Minus
-  const trendColor =
-    cmp.direction === "up"
-      ? "text-success"
-      : cmp.direction === "down"
-        ? "text-danger"
-        : "text-ink-soft"
+  const t = (cur: number, pr: number) => {
+    const c = comparePeriod(cur, pr)
+    return { percent: c.percent, direction: c.direction }
+  }
 
   return (
     <div className="space-y-4">
@@ -76,108 +71,88 @@ export default async function DashboardPage({
         <RangeSelector />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
-        <StatCard label="Omzet" tone="green" icon={TrendingUp} value={rupiah(data.totalOmzet)} />
-        <StatCard label="Transaksi" tone="red" icon={Receipt} value={String(data.totalTransaksi)} />
-        <StatCard label="Rata/Transaksi" tone="amber" icon={Banknote} value={rupiah(Math.round(avg))} />
-        <StatCard label="Item Terjual" tone="blue" icon={ShoppingBag} value={String(data.totalItem)} />
+      {/* KPI dengan tren built-in vs periode sebelumnya */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Omzet"
+          tone="green"
+          icon={TrendingUp}
+          value={rupiah(data.totalOmzet)}
+          trend={t(data.totalOmzet, prev.totalOmzet)}
+        />
+        <StatCard
+          label="Transaksi"
+          tone="red"
+          icon={Receipt}
+          value={String(data.totalTransaksi)}
+          trend={t(data.totalTransaksi, prev.totalTransaksi)}
+        />
+        <StatCard
+          label="Rata/Transaksi"
+          tone="amber"
+          icon={Banknote}
+          value={rupiah(Math.round(avg))}
+          trend={t(avg, prevAvg)}
+        />
+        <StatCard
+          label="Item Terjual"
+          tone="blue"
+          icon={ShoppingBag}
+          value={String(data.totalItem)}
+          trend={t(data.totalItem, prev.totalItem)}
+        />
       </div>
 
-      <Card>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-ink">vs periode sebelumnya</p>
-            <p className="text-xs text-ink-faint">{rupiah(prevOmzet)}</p>
-          </div>
-          <div className={`flex items-center gap-2 ${trendColor}`}>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface">
-              <TrendIcon size={18} />
+      {/* Baris 1: Line chart 7 hari (2/3) + Donut metode bayar (1/3) */}
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
+            <span className="text-xs text-ink-soft">
+              Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
             </span>
-            <div className="text-right">
-              <div className="font-bold leading-tight">
-                {cmp.percent > 0 ? "+" : ""}
-                {cmp.percent}%
-              </div>
-              <div className="text-xs text-ink-soft">
-                {cmp.diff >= 0 ? "+" : "-"}
-                {rupiah(Math.abs(cmp.diff))}
-              </div>
-            </div>
           </div>
-        </div>
-      </Card>
-
-      <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-ink">Penjualan 7 Hari Terakhir</h2>
-          <span className="text-xs text-ink-soft">
-            Total: {rupiah(last7Daily.reduce((s, d) => s + d.total, 0))}
-          </span>
-        </div>
-        <BarChart
-          data={last7Daily.map((d) => {
-            const dt = new Date(d.date + "T00:00:00Z")
-            return {
-              label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
-              value: d.total,
-            }
-          })}
-          color="bg-brand"
-          formatValue={rupiah}
-        />
-      </Card>
-
-      {multiDay && (
-        <Card>
-          <h2 className="mb-4 font-semibold text-ink">Tren Omzet Harian (Periode)</h2>
-          <BarChart
-            data={daily.map((d) => ({ label: d.date.slice(8, 10), value: d.total }))}
-            color="bg-brand"
+          <LineChart
+            data={last7Daily.map((d) => {
+              const dt = new Date(d.date + "T00:00:00Z")
+              return {
+                label: `${DAY_LABELS[dt.getUTCDay()]} ${dt.getUTCDate()}`,
+                value: d.total,
+              }
+            })}
             formatValue={rupiah}
-            labelEvery={r.days > 14 ? 3 : 1}
           />
         </Card>
-      )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold text-ink">Metode Pembayaran</h2>
-          <SplitBar
+          <h2 className="mb-3 font-semibold text-ink">Metode Pembayaran</h2>
+          <DonutChart
             segments={[
-              { label: "Tunai", value: data.cashTotal, colorClass: "bg-success" },
-              { label: "QRIS", value: data.qrisTotal, colorClass: "bg-accent" },
+              { label: "Tunai", value: data.cashTotal, colorClass: "fill-success" },
+              { label: "QRIS", value: data.qrisTotal, colorClass: "fill-accent" },
             ]}
             formatValue={rupiah}
           />
         </Card>
-
-        <Card>
-          <h2 className="mb-4 font-semibold text-ink">Omzet per Kategori</h2>
-          <RankBars
-            data={categories.map((c) => ({ label: c.category, value: c.omzet }))}
-            color="bg-accent"
-            formatValue={rupiah}
-            emptyText="Belum ada penjualan."
-          />
-        </Card>
       </div>
 
+      {/* Baris 2: Radar produk terlaris (1/2) + Bar per jam (1/2) */}
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold text-ink">Produk Terlaris</h2>
-          <RankBars
-            data={sellers.map((s) => ({
-              label: s.name,
-              value: s.qty,
-              sublabel: "terjual",
-            }))}
-            color="bg-brand"
-            emptyText="Belum ada penjualan."
-          />
+          <h2 className="mb-3 font-semibold text-ink">Produk Terlaris</h2>
+          {sellers.length > 0 ? (
+            <RadarChart
+              data={sellers.map((s) => ({ label: s.name, value: s.qty }))}
+            />
+          ) : (
+            <p className="py-8 text-center text-sm text-ink-soft">
+              Belum ada penjualan.
+            </p>
+          )}
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-semibold text-ink">Penjualan per Jam</h2>
+          <h2 className="mb-3 font-semibold text-ink">Penjualan per Jam</h2>
           <BarChart
             data={hourly.map((val, hour) => ({ label: String(hour), value: val }))}
             color="bg-accent"
@@ -185,6 +160,48 @@ export default async function DashboardPage({
             labelEvery={3}
           />
         </Card>
+      </div>
+
+      {/* Baris 3: Omzet per kategori (1/2) + Tren periode bila multi-hari (1/2) */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold text-ink">Omzet per Kategori</h2>
+          <RankBars
+            data={categories.map((c) => ({ label: c.category, value: c.omzet }))}
+            color="bg-accent"
+            formatValue={rupiah}
+            emptyText="Belum ada penjualan."
+          />
+        </Card>
+
+        {multiDay ? (
+          <Card>
+            <h2 className="mb-3 font-semibold text-ink">Tren Omzet Periode</h2>
+            <LineChart
+              data={daily.map((d) => ({ label: d.date.slice(8, 10), value: d.total }))}
+              formatValue={rupiah}
+              labelEvery={r.days > 14 ? 3 : 1}
+            />
+          </Card>
+        ) : (
+          <Card>
+            <h2 className="mb-3 font-semibold text-ink">Ringkasan</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-ink-soft">Tunai</dt>
+                <dd className="font-semibold text-ink">{rupiah(data.cashTotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-soft">QRIS</dt>
+                <dd className="font-semibold text-ink">{rupiah(data.qrisTotal)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-hairline pt-2">
+                <dt className="text-ink-soft">Total item terjual</dt>
+                <dd className="font-semibold text-ink">{data.totalItem}</dd>
+              </div>
+            </dl>
+          </Card>
+        )}
       </div>
     </div>
   )
