@@ -266,3 +266,62 @@ export async function voidOrder(orderId: string, reason: string) {
   revalidatePath("/pos")
   return { ok: true as const }
 }
+
+// Edit transaksi yang sudah selesai. Mendukung perbaikan total dan metode bayar
+// (kasus paling umum: salah ketik / koreksi diskon). Untuk ubah item, lebih
+// aman void + buat ulang karena menyangkut stok.
+export async function editOrder(
+  orderId: string,
+  patch: { total?: number; paymentMethod?: "cash" | "qris" },
+  reason: string,
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
+  if (!reason.trim()) return { ok: false as const, error: "Alasan wajib diisi" }
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single()
+  if (!order) return { ok: false as const, error: "Order tidak ditemukan" }
+  if (order.status === "voided") {
+    return { ok: false as const, error: "Order sudah dibatalkan" }
+  }
+
+  const update: Record<string, unknown> = {}
+  if (typeof patch.total === "number" && patch.total >= 0) {
+    update.total = patch.total
+  }
+  if (patch.paymentMethod) {
+    update.payment_method = patch.paymentMethod
+  }
+  if (Object.keys(update).length === 0) {
+    return { ok: false as const, error: "Tidak ada perubahan" }
+  }
+
+  const { error: updErr } = await supabase
+    .from("orders")
+    .update(update)
+    .eq("id", orderId)
+  if (updErr) return { ok: false as const, error: updErr.message }
+
+  await supabase.from("order_edits").insert({
+    order_id: orderId,
+    edited_by: user.id,
+    action: "edit",
+    reason,
+    before_snapshot: {
+      total: order.total,
+      payment_method: order.payment_method,
+    },
+    after_snapshot: update,
+  })
+
+  revalidatePath("/pos")
+  revalidatePath("/pos/history")
+  return { ok: true as const }
+}

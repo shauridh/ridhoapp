@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { History } from "lucide-react"
+import { useEffect, useState, useTransition } from "react"
+import { History, Pencil } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { voidOrder } from "../actions"
+import { voidOrder, editOrder } from "../actions"
 import { useToast } from "@/components/ui/toast"
 import { useDialog } from "@/components/ui/dialog"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Modal } from "@/components/ui/modal"
+import { Input, Select } from "@/components/ui/input"
 
 interface Order {
   id: string
@@ -27,6 +29,11 @@ export function HistoryClient() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filter, setFilter] = useState<Filter>("all")
   const [loaded, setLoaded] = useState(false)
+  const [editing, setEditing] = useState<Order | null>(null)
+  const [editTotal, setEditTotal] = useState("")
+  const [editMethod, setEditMethod] = useState<"cash" | "qris">("cash")
+  const [editReason, setEditReason] = useState("")
+  const [pending, startTransition] = useTransition()
   const toast = useToast()
   const dialog = useDialog()
 
@@ -59,6 +66,47 @@ export function HistoryClient() {
     } else {
       toast.show(result.error, "error")
     }
+  }
+
+  const openEdit = (o: Order) => {
+    setEditing(o)
+    setEditTotal(String(o.total))
+    setEditMethod(o.payment_method as "cash" | "qris")
+    setEditReason("")
+  }
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editing) return
+    if (!editReason.trim()) {
+      toast.show("Alasan wajib diisi", "error")
+      return
+    }
+    const total = Number(editTotal)
+    if (Number.isNaN(total) || total < 0) {
+      toast.show("Total tidak valid", "error")
+      return
+    }
+    startTransition(async () => {
+      const result = await editOrder(
+        editing.id,
+        { total, paymentMethod: editMethod },
+        editReason,
+      )
+      if (result.ok) {
+        toast.show("Transaksi diubah", "success")
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === editing.id
+              ? { ...o, total, payment_method: editMethod }
+              : o,
+          ),
+        )
+        setEditing(null)
+      } else {
+        toast.show(result.error, "error")
+      }
+    })
   }
 
   const visible = orders.filter((o) =>
@@ -101,7 +149,7 @@ export function HistoryClient() {
               <th className="px-4 py-3 text-right">Total</th>
               <th className="px-4 py-3">Bayar</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-4 py-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -135,13 +183,23 @@ export function HistoryClient() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   {o.status === "completed" && (
-                    <Button
-                      variant="danger"
-                      size="md"
-                      onClick={() => handleVoid(o.id)}
-                    >
-                      Void
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        icon={Pencil}
+                        onClick={() => openEdit(o)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="md"
+                        onClick={() => handleVoid(o.id)}
+                      >
+                        Void
+                      </Button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -156,6 +214,62 @@ export function HistoryClient() {
           </tbody>
         </table>
       </Card>
+
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Edit Transaksi"
+        size="md"
+      >
+        {editing && (
+          <form onSubmit={handleEdit} className="space-y-3">
+            <p className="text-xs text-ink-soft">
+              Edit hanya untuk koreksi total atau metode bayar. Untuk ubah item,
+              void transaksi lalu buat baru (agar stok ikut dihitung).
+            </p>
+            <Input
+              label="Total (Rp)"
+              type="number"
+              min={0}
+              value={editTotal}
+              onChange={(e) => setEditTotal(e.target.value)}
+              required
+            />
+            <Select
+              label="Metode Bayar"
+              value={editMethod}
+              onChange={(e) => setEditMethod(e.target.value as "cash" | "qris")}
+            >
+              <option value="cash">Tunai</option>
+              <option value="qris">QRIS</option>
+            </Select>
+            <Input
+              label="Alasan perubahan"
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="mis. salah input nominal"
+              required
+            />
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                loading={pending}
+                className="flex-1"
+              >
+                Simpan
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEditing(null)}
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   )
 }
