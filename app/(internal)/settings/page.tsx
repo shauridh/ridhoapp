@@ -9,7 +9,14 @@ export default async function SettingsPage() {
   const { data: rows } = await supabase
     .from("app_settings")
     .select("key, value")
-    .in("key", ["store_name", "ongkir", "qris_string", "online_enabled"])
+    .in("key", [
+      "store_name",
+      "ongkir",
+      "qris_string",
+      "online_enabled",
+      "owner_wa",
+      "wa_report_enabled",
+    ])
 
   const settings = new Map<string, string>(
     (rows ?? []).map((r) => [r.key, r.value]),
@@ -23,6 +30,8 @@ export default async function SettingsPage() {
         ongkir={settings.get("ongkir") ?? "0"}
         qrisString={settings.get("qris_string") ?? ""}
         onlineEnabled={settings.get("online_enabled") ?? "true"}
+        ownerWa={settings.get("owner_wa") ?? ""}
+        waReportEnabled={settings.get("wa_report_enabled") ?? "false"}
       />
     </div>
   )

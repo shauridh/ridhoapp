@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 
-const VALID_KEYS = ["store_name", "ongkir", "qris_string", "online_enabled"]
+// Field teks/angka: disimpan apa adanya.
+const TEXT_KEYS = ["store_name", "ongkir", "qris_string", "owner_wa"]
+// Field boolean (checkbox): tidak muncul di FormData saat tidak dicentang,
+// jadi harus ditangani eksplisit agar bisa tersimpan "false".
+const BOOL_KEYS = ["online_enabled", "wa_report_enabled"]
 
 export async function saveAppSettings(formData: FormData) {
   const supabase = await createClient()
@@ -13,17 +17,15 @@ export async function saveAppSettings(formData: FormData) {
   if (!user) return { ok: false as const, error: "Tidak terautentikasi" }
 
   const rows: { key: string; value: string }[] = []
-  for (const key of VALID_KEYS) {
+
+  for (const key of TEXT_KEYS) {
     const raw = formData.get(key)
     if (raw === null) continue
-    const value = String(raw).trim()
-    if (value || key === "ongkir") {
-      rows.push({ key, value })
-    }
+    rows.push({ key, value: String(raw).trim() })
   }
 
-  if (rows.length === 0) {
-    return { ok: false as const, error: "Tidak ada data untuk disimpan" }
+  for (const key of BOOL_KEYS) {
+    rows.push({ key, value: formData.get(key) === "true" ? "true" : "false" })
   }
 
   const { error } = await supabase

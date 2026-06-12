@@ -11,6 +11,8 @@ interface Props {
   ongkir: string
   qrisString: string
   onlineEnabled: string
+  ownerWa: string
+  waReportEnabled: string
 }
 
 export function AppSettingsManager({
@@ -18,6 +20,8 @@ export function AppSettingsManager({
   ongkir,
   qrisString,
   onlineEnabled,
+  ownerWa,
+  waReportEnabled,
 }: Props) {
   const [pending, startTransition] = useTransition()
   const toast = useToast()
@@ -89,6 +93,41 @@ export function AppSettingsManager({
         />
         <label htmlFor="online_enabled" className="text-sm font-medium text-ink">
           Aktifkan pesanan online
+        </label>
+      </div>
+
+      <hr className="border-hairline" />
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-ink">
+          Nomor WA Owner
+        </label>
+        <Input
+          name="owner_wa"
+          defaultValue={ownerWa}
+          placeholder="62812xxxxxxx"
+          inputMode="numeric"
+        />
+        <p className="mt-1 text-xs text-ink-faint">
+          Format internasional tanpa tanda +, contoh: 62812xxxxxxx. Rekap shift
+          akan dikirim ke nomor ini.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          name="wa_report_enabled"
+          id="wa_report_enabled"
+          value="true"
+          defaultChecked={waReportEnabled === "true"}
+          className="h-5 w-5 rounded accent-brand"
+        />
+        <label
+          htmlFor="wa_report_enabled"
+          className="text-sm font-medium text-ink"
+        >
+          Kirim rekap shift ke WA saat tutup shift
         </label>
       </div>
 

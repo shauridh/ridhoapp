@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache"
 import { calcCashDifference, calcExpectedCash } from "@/lib/domain/shift"
+import { topSellers, type SaleLine } from "@/lib/domain/report"
+import { formatShiftReport } from "@/lib/domain/shift-report"
+import { sendWa } from "@/lib/wa/getsender"
 import { createClient } from "@/lib/supabase/server"
 
 export async function openShift(openingBalance: number) {
@@ -112,9 +115,94 @@ export async function closeShift(payload: {
     })
   }
 
+  // Kirim rekap shift ke WA owner (best-effort, tidak menggagalkan tutup shift).
+  await sendShiftReport(supabase, payload.shiftId, {
+    cashSales,
+    qrisTotal,
+    openingBalance: Number(shift.opening_balance),
+    closingBalance,
+    cashDiff,
+  })
+
   revalidatePath("/pos/shift")
   revalidatePath("/pos")
   return { ok: true as const }
+}
+
+// Helper terpisah agar closeShift tetap ringkas. Semua kegagalan ditelan.
+async function sendShiftReport(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shiftId: string,
+  totals: {
+    cashSales: number
+    qrisTotal: number
+    openingBalance: number
+    closingBalance: number
+    cashDiff: number
+  },
+) {
+  try {
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["owner_wa", "wa_report_enabled", "store_name"])
+    const map = new Map<string, string>(
+      (settings ?? []).map((s) => [s.key, s.value]),
+    )
+    if (map.get("wa_report_enabled") !== "true") return
+    const ownerWa = map.get("owner_wa")
+    if (!ownerWa) return
+
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, total, order_items(product_name, qty, subtotal)")
+      .eq("shift_id", shiftId)
+      .eq("status", "completed")
+    const orderList = orders ?? []
+
+    const lines: SaleLine[] = []
+    let omzet = 0
+    let item = 0
+    for (const o of orderList) {
+      omzet += Number(o.total)
+      const items =
+        (o.order_items as unknown as {
+          product_name: string
+          qty: number
+          subtotal: number
+        }[]) ?? []
+      for (const it of items) {
+        item += it.qty
+        lines.push({
+          name: it.product_name,
+          qty: it.qty,
+          subtotal: Number(it.subtotal),
+          hour: 0,
+        })
+      }
+    }
+
+    const msg = formatShiftReport({
+      storeName: map.get("store_name") ?? "Sabana Fried Chicken",
+      closedAt: new Date().toISOString(),
+      omzet,
+      transaksi: orderList.length,
+      item,
+      tunai: totals.cashSales,
+      qris: totals.qrisTotal,
+      kasAwal: totals.openingBalance,
+      kasAkhir: totals.closingBalance,
+      selisih: totals.cashDiff,
+      topSellers: topSellers(lines, 5).map((s) => ({
+        name: s.name,
+        qty: s.qty,
+      })),
+    })
+
+    await sendWa(ownerWa, msg)
+  } catch {
+    // best-effort: abaikan kegagalan WA
+  }
 }
 
 export async function cashOut(shiftId: string, amount: number, reason: string) {
