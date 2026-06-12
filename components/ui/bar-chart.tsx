@@ -1,64 +1,72 @@
 interface Bar {
-  label: string
-  value: number
+  label: string;
+  value: number;
 }
 
 interface Props {
-  data: Bar[]
-  color?: string
-  height?: number
-  formatValue?: (n: number) => string
-  // tampilkan setiap label ke-n (untuk sumbu padat seperti jam)
-  labelEvery?: number
+  data: Bar[];
+  color?: string;
+  height?: number;
+  formatValue?: (n: number) => string;
+  labelEvery?: number;
 }
 
-// Bar chart ringan berbasis CSS. Tiap kolom membungkus bar + label dalam satu
-// sel flex-1 sehingga bar dan label SELALU sejajar (presisi).
 export function BarChart({
   data,
   color = "bg-brand",
-  height = 150,
+  height = 200,
   formatValue = (n) => String(n),
   labelEvery = 1,
 }: Props) {
-  const max = Math.max(1, ...data.map((d) => d.value))
-  const plotH = height - 22
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const plotH = height - 32;
+  const minBarWidth = 24;
+  const minGap = 4;
+  const totalMinWidth = data.length * minBarWidth + (data.length - 1) * minGap;
 
   return (
-    <div className="w-full">
-      <div className="relative">
-        {/* gridline */}
-        <div className="pointer-events-none absolute inset-x-0" style={{ height: plotH }}>
-          {[0, 0.5, 1].map((g) => (
+    <div className="w-full overflow-x-auto">
+      <div className="min-w-full" style={{ minWidth: Math.max(totalMinWidth + 32, 300) }}>
+        <div className="relative">
+          {/* gridlines */}
+          <div
+            className="pointer-events-none absolute inset-x-0 border-t border-hairline/30"
+            style={{ height: plotH }}
+          />
+          {[0.25, 0.5, 0.75].map((g) => (
             <div
               key={g}
-              className="absolute inset-x-0 border-t border-dashed border-hairline/50"
-              style={{ bottom: `${g * 100}%` }}
+              className="pointer-events-none absolute inset-x-0 border-t border-dashed border-hairline/20"
+              style={{ bottom: `${g * 100}%`, height: plotH }}
             />
           ))}
-        </div>
 
-        {/* kolom: bar + label menyatu per sel */}
-        <div className="flex items-end gap-1">
-          {data.map((d, i) => (
-            <div key={i} className="group flex flex-1 flex-col items-center">
+          {/* bars */}
+          <div className="flex items-end gap-1 px-4 py-4" style={{ minHeight: plotH + 32 }}>
+            {data.map((d, i) => (
               <div
-                className="flex w-full items-end justify-center"
-                style={{ height: plotH }}
+                key={i}
+                className="group flex flex-col items-center"
+                style={{ flex: `0 0 ${minBarWidth}px` }}
               >
-                <div
-                  className={`w-full max-w-[32px] rounded-t ${color} transition-all group-hover:opacity-80`}
-                  style={{ height: `${Math.max(2, (d.value / max) * plotH)}px` }}
-                  title={`${d.label}: ${formatValue(d.value)}`}
-                />
+                <div className="w-full text-center">
+                  <div
+                    className={`mx-auto w-full rounded-t-sm ${color} transition-all duration-150 hover:opacity-80 cursor-pointer`}
+                    style={{
+                      height: `${Math.max(2, (d.value / max) * plotH)}px`,
+                      minHeight: "2px",
+                    }}
+                    title={`${d.label}\n${formatValue(d.value)}`}
+                  />
+                </div>
+                <div className="mt-2 h-4 text-center text-[10px] font-medium leading-4 text-ink-soft whitespace-nowrap">
+                  {i % labelEvery === 0 ? d.label : ""}
+                </div>
               </div>
-              <div className="mt-1 h-3 truncate text-center text-[9px] leading-3 text-ink-soft">
-                {i % labelEvery === 0 ? d.label : ""}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
