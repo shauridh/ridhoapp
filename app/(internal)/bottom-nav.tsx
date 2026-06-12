@@ -1,14 +1,14 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { ShoppingCart, Package, UtensilsCrossed, Wallet, Receipt } from "lucide-react"
+import { ShoppingCart, Package, UtensilsCrossed, Wallet, LayoutDashboard } from "lucide-react"
 
 const links = [
   { href: "/pos", label: "Kasir", icon: ShoppingCart },
   { href: "/inventory", label: "Stok", icon: Package },
   { href: "/settings/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/finance", label: "Keuangan", icon: Wallet },
-  { href: "/pos/shift", label: "Shift", icon: Receipt },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ]
 
 export function BottomNav() {

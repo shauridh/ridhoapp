@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   UtensilsCrossed,
   Package,
-  Receipt,
   Wallet,
   Settings,
   LogOut,
@@ -22,7 +21,6 @@ const links = [
   { href: "/pos", label: "Kasir", icon: ShoppingCart },
   { href: "/settings/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/inventory", label: "Stok", icon: Package },
-  { href: "/pos/shift", label: "Shift", icon: Receipt },
   { href: "/finance", label: "Keuangan", icon: Wallet },
   { href: "/settings", label: "Pengaturan", icon: Settings },
 ]

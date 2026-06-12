@@ -41,6 +41,45 @@ export async function listRecentShifts(limit = 20): Promise<ShiftRow[]> {
   return data ?? []
 }
 
+// Saldo laci yang ditinggal shift closed terakhir (jadi modal awal shift berikutnya).
+export async function getLastClosedShiftBalance(): Promise<number> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("shifts")
+    .select("closing_balance")
+    .eq("status", "closed")
+    .order("closed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return Number(data?.closing_balance ?? 0)
+}
+
+export interface DrawerMovement {
+  id: string
+  amount: number
+  reason: string | null
+  created_at: string
+}
+
+// Daftar pengeluaran (cash out) dari laci untuk shift berjalan.
+export async function listDrawerMovements(
+  shiftId: string,
+): Promise<DrawerMovement[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("cash_drawer_movements")
+    .select("id, amount, reason, created_at")
+    .eq("shift_id", shiftId)
+    .eq("direction", "out")
+    .order("created_at", { ascending: false })
+  return (data ?? []).map((m) => ({
+    id: m.id,
+    amount: Number(m.amount),
+    reason: m.reason,
+    created_at: m.created_at,
+  }))
+}
+
 export async function getShiftCashSummary(shift: ShiftRow) {
   const supabase = await createClient()
 
