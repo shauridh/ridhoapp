@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { LineChart } from "@/components/ui/line-chart";
 import { DonutChart } from "@/components/ui/donut-chart";
+import { PieChart } from "@/components/ui/pie-chart";
 import { RadarChart } from "@/components/ui/radar-chart";
 import { RankBars } from "@/components/ui/rank-bars";
 import { BarChart } from "@/components/ui/bar-chart";
@@ -167,9 +168,9 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* Section 4: Categories + Summary */}
+      {/* Section 4: Categories + Trends */}
       <div className="space-y-2">
-        <h2 className="text-sm font-medium text-ink-soft px-1">Kategori & Ringkasan</h2>
+        <h2 className="text-sm font-medium text-ink-soft px-1">Kategori & Tren</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <h3 className="mb-4 font-semibold text-ink">Omzet per Kategori</h3>
@@ -193,21 +194,25 @@ export default async function DashboardPage({
             </Card>
           ) : (
             <Card>
-              <h3 className="mb-4 font-semibold text-ink">Ringkasan</h3>
-              <dl className="space-y-3">
-                <div className="flex items-center justify-between rounded-lg bg-surface p-3">
-                  <dt className="text-sm text-ink-soft">Tunai</dt>
-                  <dd className="font-semibold text-ink">{rupiah(data.cashTotal)}</dd>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-surface p-3">
-                  <dt className="text-sm text-ink-soft">QRIS</dt>
-                  <dd className="font-semibold text-ink">{rupiah(data.qrisTotal)}</dd>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-accent/10 p-3 border border-accent/20">
-                  <dt className="text-sm font-medium text-ink">Total Item</dt>
-                  <dd className="font-bold text-ink text-lg">{data.totalItem}</dd>
-                </div>
-              </dl>
+              <h3 className="mb-4 font-semibold text-ink">Distribusi Kategori</h3>
+              <PieChart
+                segments={categories.map((c, i) => {
+                  const colors = [
+                    "fill-brand",
+                    "fill-accent",
+                    "fill-success",
+                    "fill-warning",
+                    "fill-error",
+                    "fill-info",
+                  ];
+                  return {
+                    label: c.category,
+                    value: c.omzet,
+                    colorClass: colors[i % colors.length],
+                  };
+                })}
+                formatValue={rupiah}
+              />
             </Card>
           )}
         </div>
