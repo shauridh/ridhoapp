@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Receipt } from "lucide-react"
+import Link from "next/link"
+import { Receipt, Bookmark, Bell, History } from "lucide-react"
 import type { ProductRow } from "@/lib/data/products"
 import type { VariantRow } from "@/lib/data/products"
 import { createClient } from "@/lib/supabase/client"
@@ -10,6 +11,7 @@ import type { Cart, CartVariant } from "@/lib/domain/cart"
 import type { GridSetting } from "@/lib/domain/grid"
 import { useToast } from "@/components/ui/toast"
 import { useDialog } from "@/components/ui/dialog"
+import { SlideOver } from "@/components/ui/slide-over"
 import { checkout } from "./actions"
 import { holdOrder } from "./held-actions"
 import { ProductGrid } from "./product-grid"
@@ -17,10 +19,12 @@ import { CartView } from "./cart"
 import { VariantPicker } from "./variant-picker"
 import { PaymentModal } from "./payment-modal"
 import { Receipt as ReceiptModal } from "./receipt"
-import { OrderHistory } from "./order-history"
 import { OnlineOrders } from "./online-orders"
 import { HeldOrders } from "./held-orders"
 import { ShiftPanel } from "./shift-panel"
+import { useOnlineOrders } from "./use-online-orders"
+
+type Panel = "held" | "online" | "shift" | null
 
 interface ReceiptState {
   id: string
@@ -50,8 +54,9 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string | null>(null)
   const [showPayment, setShowPayment] = useState(false)
-  const [showShift, setShowShift] = useState(false)
+  const [panel, setPanel] = useState<Panel>(null)
   const [heldRefresh, setHeldRefresh] = useState(0)
+  const online = useOnlineOrders()
   const toast = useToast()
   const dialog = useDialog()
 
@@ -191,14 +196,32 @@ export function PosClient({ shiftId, openingBalance }: Props) {
 
   return (
     <div className="flex h-[calc(100vh-52px)] flex-col">
-      <div className="mb-2 flex items-center justify-end">
+      <div className="mb-2 flex items-center justify-end gap-2">
+        <HeaderIcon
+          icon={Bookmark}
+          label="Tersimpan"
+          onClick={() => setPanel("held")}
+        />
+        <HeaderIcon
+          icon={Bell}
+          label="Online"
+          badge={online.pendingCount}
+          onClick={() => setPanel("online")}
+        />
+        <Link
+          href="/pos/history"
+          className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+        >
+          <History size={18} className="text-brand" />
+          <span className="hidden sm:inline">Riwayat</span>
+        </Link>
         <button
-          onClick={() => setShowShift(true)}
+          onClick={() => setPanel("shift")}
           className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
         >
           <span className="flex h-2 w-2 rounded-full bg-success" />
           <Receipt size={18} className="text-brand" />
-          Kelola Shift
+          <span className="hidden sm:inline">Kelola Shift</span>
         </button>
       </div>
 
@@ -227,15 +250,6 @@ export function PosClient({ shiftId, openingBalance }: Props) {
             onPay={() => setShowPayment(true)}
             disabled={loading}
           />
-          <div className="mt-4">
-            <HeldOrders refreshKey={heldRefresh} onResume={handleResume} />
-          </div>
-          <div className="mt-4">
-            <OnlineOrders />
-          </div>
-          <div className="mt-4">
-            <OrderHistory />
-          </div>
         </div>
       </div>
 
@@ -257,11 +271,43 @@ export function PosClient({ shiftId, openingBalance }: Props) {
         />
       )}
 
-      {showShift && (
+      {panel === "held" && (
+        <SlideOver
+          title="Pesanan Tersimpan"
+          icon={Bookmark}
+          onClose={() => setPanel(null)}
+        >
+          <HeldOrders
+            refreshKey={heldRefresh}
+            onResume={(saved) => {
+              handleResume(saved)
+              setPanel(null)
+            }}
+          />
+        </SlideOver>
+      )}
+
+      {panel === "online" && (
+        <SlideOver
+          title="Pesanan Online"
+          icon={Bell}
+          onClose={() => setPanel(null)}
+        >
+          <OnlineOrders
+            orders={online.orders}
+            onConfirm={online.confirm}
+            onMarkPaid={online.markPaid}
+            onMarkDone={online.markDone}
+            onCancel={online.cancel}
+          />
+        </SlideOver>
+      )}
+
+      {panel === "shift" && (
         <ShiftPanel
           shiftId={shiftId}
           openingBalance={openingBalance}
-          onClose={() => setShowShift(false)}
+          onClose={() => setPanel(null)}
         />
       )}
 
@@ -276,5 +322,32 @@ export function PosClient({ shiftId, openingBalance }: Props) {
         />
       )}
     </div>
+  )
+}
+
+function HeaderIcon({
+  icon: Icon,
+  label,
+  badge,
+  onClick,
+}: {
+  icon: typeof Bookmark
+  label: string
+  badge?: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+    >
+      <Icon size={18} className="text-brand" />
+      <span className="hidden sm:inline">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
   )
 }
