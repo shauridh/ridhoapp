@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { calcCashDifference, calcExpectedCash } from "@/lib/domain/shift"
 import { topSellers, type SaleLine } from "@/lib/domain/report"
-import { formatShiftReport } from "@/lib/domain/shift-report"
+import { formatShiftReport, renderShiftTemplate } from "@/lib/domain/shift-report"
 import { sendWa } from "@/lib/wa/getsender"
 import { createClient } from "@/lib/supabase/server"
 
@@ -145,7 +145,7 @@ async function sendShiftReport(
     const { data: settings } = await supabase
       .from("app_settings")
       .select("key, value")
-      .in("key", ["owner_wa", "wa_report_enabled", "store_name"])
+      .in("key", ["owner_wa", "wa_report_enabled", "store_name", "wa_template"])
     const map = new Map<string, string>(
       (settings ?? []).map((s) => [s.key, s.value]),
     )
@@ -182,7 +182,7 @@ async function sendShiftReport(
       }
     }
 
-    const msg = formatShiftReport({
+    const reportData = {
       storeName: map.get("store_name") ?? "Sabana Fried Chicken",
       closedAt: new Date().toISOString(),
       omzet,
@@ -197,7 +197,13 @@ async function sendShiftReport(
         name: s.name,
         qty: s.qty,
       })),
-    })
+    }
+
+    // Pakai template kustom jika diisi, jika tidak pakai format default.
+    const template = map.get("wa_template")?.trim()
+    const msg = template
+      ? renderShiftTemplate(template, reportData)
+      : formatShiftReport(reportData)
 
     await sendWa(ownerWa, msg)
   } catch {

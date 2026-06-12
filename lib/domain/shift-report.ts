@@ -57,13 +57,56 @@ export function formatShiftReport(data: ShiftReportData): string {
   lines.push(`Selisih    : ${selisihLabel(data.selisih)}`)
   lines.push("")
   lines.push("-- Terlaris --")
-  if (data.topSellers.length === 0) {
-    lines.push("Belum ada penjualan")
-  } else {
-    data.topSellers.forEach((s, i) => {
-      lines.push(`${i + 1}. ${s.name} x${s.qty}`)
-    })
-  }
+  lines.push(formatTopSellers(data.topSellers))
 
   return lines.join("\n")
+}
+
+function formatTopSellers(topSellers: { name: string; qty: number }[]): string {
+  if (topSellers.length === 0) return "Belum ada penjualan"
+  return topSellers.map((s, i) => `${i + 1}. ${s.name} x${s.qty}`).join("\n")
+}
+
+// Template default memakai placeholder yang sama dengan formatShiftReport.
+export const DEFAULT_SHIFT_TEMPLATE = `*REKAP SHIFT - {toko}*
+{tanggal}
+
+Omzet      : {omzet}
+Transaksi  : {transaksi}
+Item       : {item}
+
+-- Pembayaran --
+Tunai      : {tunai}
+QRIS       : {qris}
+
+-- Kas Laci --
+Kas Awal   : {kasAwal}
+Kas Akhir  : {kasAkhir}
+Selisih    : {selisih}
+
+-- Terlaris --
+{terlaris}`
+
+// Render template pesan WA dengan placeholder {nama}.
+// Placeholder tak dikenal dibiarkan apa adanya.
+export function renderShiftTemplate(
+  template: string,
+  data: ShiftReportData,
+): string {
+  const map: Record<string, string> = {
+    toko: data.storeName,
+    tanggal: formatTanggal(data.closedAt),
+    omzet: rupiah(data.omzet),
+    transaksi: String(data.transaksi),
+    item: String(data.item),
+    tunai: rupiah(data.tunai),
+    qris: rupiah(data.qris),
+    kasAwal: rupiah(data.kasAwal),
+    kasAkhir: rupiah(data.kasAkhir),
+    selisih: selisihLabel(data.selisih),
+    terlaris: formatTopSellers(data.topSellers),
+  }
+  return template.replace(/\{(\w+)\}/g, (whole, key) =>
+    key in map ? map[key] : whole,
+  )
 }

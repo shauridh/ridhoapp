@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { formatShiftReport, type ShiftReportData } from "./shift-report"
+import {
+  formatShiftReport,
+  renderShiftTemplate,
+  DEFAULT_SHIFT_TEMPLATE,
+  type ShiftReportData,
+} from "./shift-report"
 
 const base: ShiftReportData = {
   storeName: "Sabana Fried Chicken",
@@ -64,5 +69,44 @@ describe("formatShiftReport", () => {
   it("menampilkan pesan kosong saat tidak ada penjualan", () => {
     const msg = formatShiftReport({ ...base, topSellers: [] })
     expect(msg.toLowerCase()).toContain("belum ada penjualan")
+  })
+})
+
+describe("renderShiftTemplate", () => {
+  it("mengganti placeholder dengan nilai terformat", () => {
+    const tpl = "Toko {toko}\nOmzet {omzet}\nTrx {transaksi}"
+    const msg = renderShiftTemplate(tpl, base)
+    expect(msg).toBe("Toko Sabana Fried Chicken\nOmzet Rp 1.250.000\nTrx 48")
+  })
+
+  it("mengganti placeholder pembayaran dan kas", () => {
+    const tpl = "{tunai} {qris} {kasAwal} {kasAkhir} {selisih}"
+    const msg = renderShiftTemplate(tpl, base)
+    expect(msg).toBe(
+      "Rp 800.000 Rp 450.000 Rp 200.000 Rp 300.000 Rp 0 (cocok)",
+    )
+  })
+
+  it("mengganti placeholder item dan terlaris", () => {
+    const msg = renderShiftTemplate("{item}\n{terlaris}", base)
+    expect(msg).toContain("132")
+    expect(msg).toContain("1. Paket Ayam x40")
+    expect(msg).toContain("2. Nasi x32")
+  })
+
+  it("placeholder tak dikenal dibiarkan apa adanya", () => {
+    expect(renderShiftTemplate("{xyz}", base)).toBe("{xyz}")
+  })
+
+  it("template default menghasilkan pesan lengkap", () => {
+    const msg = renderShiftTemplate(DEFAULT_SHIFT_TEMPLATE, base)
+    expect(msg).toContain("Sabana Fried Chicken")
+    expect(msg).toContain("Rp 1.250.000")
+    expect(msg).toContain("Paket Ayam")
+  })
+
+  it("tanggal tersedia sebagai placeholder", () => {
+    const msg = renderShiftTemplate("{tanggal}", base)
+    expect(msg).toContain("2026")
   })
 })

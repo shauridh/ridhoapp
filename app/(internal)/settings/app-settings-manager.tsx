@@ -13,6 +13,7 @@ interface Props {
   onlineEnabled: string
   ownerWa: string
   waReportEnabled: string
+  waTemplate: string
 }
 
 export function AppSettingsManager({
@@ -22,6 +23,7 @@ export function AppSettingsManager({
   onlineEnabled,
   ownerWa,
   waReportEnabled,
+  waTemplate,
 }: Props) {
   const [pending, startTransition] = useTransition()
   const toast = useToast()
@@ -129,6 +131,25 @@ export function AppSettingsManager({
         >
           Kirim rekap shift ke WA saat tutup shift
         </label>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-ink">
+          Template Pesan WA
+        </label>
+        <textarea
+          name="wa_template"
+          rows={10}
+          defaultValue={waTemplate}
+          placeholder="Kosongkan untuk pakai format bawaan"
+          className="w-full rounded-xl border border-hairline px-3 py-2 font-mono text-xs text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+        />
+        <div className="mt-1 text-xs text-ink-faint">
+          <p>Kosongkan untuk pakai format bawaan. Placeholder tersedia:</p>
+          <p className="mt-1 font-mono">
+            {"{toko} {tanggal} {omzet} {transaksi} {item} {tunai} {qris} {kasAwal} {kasAkhir} {selisih} {terlaris}"}
+          </p>
+        </div>
       </div>
 
       <Button type="submit" disabled={pending}>

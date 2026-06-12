@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 
 // Field teks/angka: disimpan apa adanya.
-const TEXT_KEYS = ["store_name", "ongkir", "qris_string", "owner_wa"]
+const TEXT_KEYS = ["store_name", "ongkir", "qris_string", "owner_wa", "wa_template"]
 // Field boolean (checkbox): tidak muncul di FormData saat tidak dicentang,
 // jadi harus ditangani eksplisit agar bisa tersimpan "false".
 const BOOL_KEYS = ["online_enabled", "wa_report_enabled"]

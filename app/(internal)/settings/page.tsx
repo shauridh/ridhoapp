@@ -17,6 +17,7 @@ export default async function SettingsPage() {
       "online_enabled",
       "owner_wa",
       "wa_report_enabled",
+      "wa_template",
     ])
 
   const settings = new Map<string, string>(
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
         onlineEnabled={settings.get("online_enabled") ?? "true"}
         ownerWa={settings.get("owner_wa") ?? ""}
         waReportEnabled={settings.get("wa_report_enabled") ?? "false"}
+        waTemplate={settings.get("wa_template") ?? ""}
       />
       <CashierDisplaySettings />
     </div>
