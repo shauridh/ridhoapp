@@ -82,17 +82,10 @@ const nextConfig: NextConfig = {
     tsconfigPath: "./tsconfig.json",
   },
 
-  // ESLint integration
-  eslint: {
-    dirs: ["app", "components", "lib", "public"],
-  },
-
   // Production optimizations
   compress: true,
-  optimizeFonts: true,
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
-  swcMinify: true,
 };
 
 export default nextConfig;
