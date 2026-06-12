@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Receipt } from "lucide-react"
 import type { ProductRow } from "@/lib/data/products"
 import type { VariantRow } from "@/lib/data/products"
 import { createClient } from "@/lib/supabase/client"
@@ -42,6 +41,9 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   const [loading, setLoading] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [cols, setCols] = useState<GridSetting>("auto")
+  const [showSearch, setShowSearch] = useState(false)
+  const [query, setQuery] = useState("")
+  const [category, setCategory] = useState<string | null>(null)
   const [showPayment, setShowPayment] = useState(false)
   const [showShift, setShowShift] = useState(false)
   const toast = useToast()
@@ -63,11 +65,22 @@ export function PosClient({ shiftId, openingBalance }: Props) {
     } else if (saved === "auto") {
       setCols("auto")
     }
+    setShowSearch(localStorage.getItem("pos.showSearch") === "true")
   }, [])
 
-  const changeCols = (c: GridSetting) => {
-    setCols(c)
-    localStorage.setItem("pos.gridCols", String(c))
+  // Buka panel shift via tombol di sidebar (custom event atau query ?shift=1).
+  useEffect(() => {
+    const open = () => setShowShift(true)
+    window.addEventListener("open-shift-panel", open)
+    if (new URLSearchParams(window.location.search).get("shift") === "1") {
+      setShowShift(true)
+    }
+    return () => window.removeEventListener("open-shift-panel", open)
+  }, [])
+
+  const cartQty: Record<string, number> = {}
+  for (const item of cart) {
+    cartQty[item.productId] = (cartQty[item.productId] ?? 0) + item.qty
   }
 
   const handleSelectProduct = async (product: ProductRow) => {
@@ -156,44 +169,35 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-52px)] flex-col">
-      <div className="mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm">
-        <span className="flex items-center gap-2 text-sm font-medium text-ink">
-          <span className="h-2 w-2 rounded-full bg-success" />
-          Shift Terbuka
-        </span>
-        <button
-          onClick={() => setShowShift(true)}
-          className="flex items-center gap-1 rounded-lg bg-brand/10 px-3 py-1.5 text-sm font-semibold text-brand transition hover:bg-brand/20"
-        >
-          <Receipt size={16} /> Kelola Shift
-        </button>
+    <div className="flex h-[calc(100vh-52px)] gap-4">
+      <div className="flex-1 overflow-y-auto pr-4">
+        <ProductGrid
+          products={products}
+          onSelect={handleSelectProduct}
+          cols={cols}
+          cartQty={cartQty}
+          showSearch={showSearch}
+          query={query}
+          onQueryChange={setQuery}
+          category={category}
+          onCategoryChange={setCategory}
+        />
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <div className="flex-1 overflow-y-auto pr-4">
-          <ProductGrid
-            products={products}
-            onSelect={handleSelectProduct}
-            cols={cols}
-            onColsChange={changeCols}
-          />
+      <div className="flex w-80 flex-col border-l border-hairline pl-4">
+        <CartView
+          cart={cart}
+          onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
+          onRemove={(i) => setCart((prev) => removeItem(prev, i))}
+          onClear={() => setCart(createCart())}
+          onPay={() => setShowPayment(true)}
+          disabled={loading}
+        />
+        <div className="mt-4">
+          <OnlineOrders />
         </div>
-
-        <div className="flex w-80 flex-col border-l border-hairline pl-4">
-          <CartView
-            cart={cart}
-            onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
-            onRemove={(i) => setCart((prev) => removeItem(prev, i))}
-            onPay={() => setShowPayment(true)}
-            disabled={loading}
-          />
-          <div className="mt-4">
-            <OnlineOrders />
-          </div>
-          <div className="mt-4">
-            <OrderHistory />
-          </div>
+        <div className="mt-4">
+          <OrderHistory />
         </div>
       </div>
 

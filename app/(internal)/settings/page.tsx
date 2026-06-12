@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { AppSettingsManager } from "./app-settings-manager"
+import { CashierDisplaySettings } from "./cashier-display-settings"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
         ownerWa={settings.get("owner_wa") ?? ""}
         waReportEnabled={settings.get("wa_report_enabled") ?? "false"}
       />
+      <CashierDisplaySettings />
     </div>
   )
 }
