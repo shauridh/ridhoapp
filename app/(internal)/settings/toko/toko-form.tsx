@@ -42,6 +42,7 @@ export function TokoForm({ storeName, ongkir }: Props) {
         type="number"
         min={0}
         defaultValue={ongkir}
+        money
         required
       />
       <p className="text-xs text-ink-faint">

@@ -50,29 +50,31 @@ export function Receipt({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-72 rounded-2xl bg-white p-4 text-sm shadow-lg">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 text-base shadow-lg">
         <div className="receipt-print">
-          <h3 className="text-center font-bold text-ink">Sabana Fried Chicken</h3>
-          <p className="text-center text-xs text-ink-soft">
+          <h3 className="text-center text-lg font-bold text-ink">
+            Sabana Fried Chicken
+          </h3>
+          <p className="text-center text-sm text-ink-soft">
             {new Date(order.created_at).toLocaleString("id-ID")}
           </p>
-          <hr className="my-2 border-hairline" />
+          <hr className="my-3 border-hairline" />
           {items.map((item, i) => (
-            <div key={i} className="flex justify-between py-0.5 text-ink">
+            <div key={i} className="flex justify-between py-1 text-ink">
               <span>
                 {item.name} x{item.qty}
               </span>
               <span>Rp {(item.price * item.qty).toLocaleString("id-ID")}</span>
             </div>
           ))}
-          <hr className="my-2 border-hairline" />
-          <div className="flex justify-between font-bold text-ink">
+          <hr className="my-3 border-hairline" />
+          <div className="flex justify-between text-xl font-bold text-ink">
             <span>Total</span>
             <span>Rp {order.total.toLocaleString("id-ID")}</span>
           </div>
           {typeof paid === "number" && order.payment_method === "cash" && (
             <>
-              <div className="flex justify-between text-ink-soft">
+              <div className="mt-1 flex justify-between text-ink-soft">
                 <span>Tunai</span>
                 <span>Rp {paid.toLocaleString("id-ID")}</span>
               </div>
@@ -82,15 +84,15 @@ export function Receipt({
               </div>
             </>
           )}
-          <div className="mt-1 text-xs text-ink-soft">
+          <div className="mt-2 text-sm text-ink-soft">
             Pembayaran: {order.payment_method.toUpperCase()}
           </div>
-          <p className="mt-2 text-center text-xs text-ink-soft">
+          <p className="mt-3 text-center text-sm text-ink-soft">
             Terima kasih 🙏
           </p>
         </div>
 
-        <div className="mt-3 flex gap-2">
+        <div className="mt-5 flex gap-2">
           {showPrint && (
             <Button
               variant="ghost"
@@ -101,7 +103,12 @@ export function Receipt({
               Cetak
             </Button>
           )}
-          <Button variant="primary" onClick={onClose} className="flex-1">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={onClose}
+            className="flex-1"
+          >
             Tutup ({countdown})
           </Button>
         </div>

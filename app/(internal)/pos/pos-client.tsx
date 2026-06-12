@@ -39,9 +39,10 @@ interface ReceiptState {
 interface Props {
   shiftId: string
   openingBalance: number
+  qrisImageUrl?: string
 }
 
-export function PosClient({ shiftId, openingBalance }: Props) {
+export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
   const [cart, setCart] = useState<Cart>(createCart())
   const [products, setProducts] = useState<ProductRow[]>([])
   const [variants, setVariants] = useState<Record<string, VariantRow[]>>({})
@@ -266,6 +267,7 @@ export function PosClient({ shiftId, openingBalance }: Props) {
         <PaymentModal
           total={cartTotal(cart)}
           loading={loading}
+          qrisImageUrl={qrisImageUrl}
           onConfirm={handleCheckout}
           onClose={() => setShowPayment(false)}
         />

@@ -6,13 +6,46 @@ const baseField =
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  // Field nilai uang: PageUp/PageDown menambah/mengurangi kelipatan (default 1000).
+  money?: boolean
+  moneyStep?: number
 }
 
-export function Input({ label, error, className = "", ...props }: InputProps) {
+export function Input({
+  label,
+  error,
+  className = "",
+  money = false,
+  moneyStep = 1000,
+  onKeyDown,
+  ...props
+}: InputProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (money && (e.key === "PageUp" || e.key === "PageDown")) {
+      e.preventDefault()
+      const el = e.currentTarget
+      const cur = Number(el.value) || 0
+      const delta = e.key === "PageUp" ? moneyStep : -moneyStep
+      const next = Math.max(0, cur + delta)
+      // Set value lewat native setter agar React onChange ikut ter-trigger.
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set
+      setter?.call(el, String(next))
+      el.dispatchEvent(new Event("input", { bubbles: true }))
+    }
+    onKeyDown?.(e)
+  }
+
   return (
     <label className="block">
       {label && <span className="mb-1 block text-sm text-ink-soft">{label}</span>}
-      <input className={`${baseField} ${className}`} {...props} />
+      <input
+        className={`${baseField} ${className}`}
+        onKeyDown={handleKeyDown}
+        {...props}
+      />
       {error && <span className="mt-1 block text-sm text-danger">{error}</span>}
     </label>
   )

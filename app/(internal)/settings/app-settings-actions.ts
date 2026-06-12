@@ -33,6 +33,7 @@ export async function saveTokoSettings(formData: FormData) {
 export async function saveOnlineSettings(formData: FormData) {
   return upsertKeys([
     { key: "qris_string", value: String(formData.get("qris_string") ?? "").trim() },
+    { key: "qris_image", value: String(formData.get("qris_image") ?? "").trim() },
     {
       key: "online_enabled",
       value: formData.get("online_enabled") === "true" ? "true" : "false",

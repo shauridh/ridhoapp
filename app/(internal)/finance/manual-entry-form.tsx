@@ -96,6 +96,7 @@ export function ManualEntryForm({ categories: _categories }: { categories: Categ
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0"
+            money
             required
           />
           <Input

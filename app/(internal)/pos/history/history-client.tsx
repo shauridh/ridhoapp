@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { History, Pencil } from "lucide-react"
+import Link from "next/link"
+import { History, Pencil, ChevronLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { voidOrder, editOrder } from "../actions"
 import { useToast } from "@/components/ui/toast"
@@ -121,6 +122,12 @@ export function HistoryClient() {
 
   return (
     <div className="space-y-4">
+      <Link
+        href="/pos"
+        className="inline-flex items-center gap-1 text-sm font-medium text-ink-soft hover:text-ink"
+      >
+        <ChevronLeft size={16} /> Kembali ke Kasir
+      </Link>
       <h1 className="flex items-center gap-2 text-xl font-bold text-ink">
         <History size={22} className="text-brand" /> Riwayat Transaksi
       </h1>
@@ -233,6 +240,7 @@ export function HistoryClient() {
               min={0}
               value={editTotal}
               onChange={(e) => setEditTotal(e.target.value)}
+              money
               required
             />
             <Select

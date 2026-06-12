@@ -9,7 +9,7 @@ export default async function OnlinePage() {
   const { data: rows } = await supabase
     .from("app_settings")
     .select("key, value")
-    .in("key", ["qris_string", "online_enabled"])
+    .in("key", ["qris_string", "qris_image", "online_enabled"])
   const map = new Map<string, string>(
     (rows ?? []).map((r) => [r.key, r.value]),
   )
@@ -18,6 +18,7 @@ export default async function OnlinePage() {
     <SettingsSection title="Pesanan Online & QRIS">
       <OnlineForm
         qrisString={map.get("qris_string") ?? ""}
+        qrisImage={map.get("qris_image") ?? ""}
         onlineEnabled={map.get("online_enabled") ?? "true"}
       />
     </SettingsSection>

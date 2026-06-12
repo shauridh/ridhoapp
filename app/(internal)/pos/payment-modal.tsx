@@ -12,11 +12,12 @@ import {
 interface Props {
   total: number
   loading: boolean
+  qrisImageUrl?: string
   onConfirm: (method: "cash" | "qris", paid: number, change: number) => void
   onClose: () => void
 }
 
-export function PaymentModal({ total, loading, onConfirm, onClose }: Props) {
+export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose }: Props) {
   const [method, setMethod] = useState<"cash" | "qris">("cash")
   const [paid, setPaid] = useState<number>(0)
 
@@ -111,10 +112,30 @@ export function PaymentModal({ total, loading, onConfirm, onClose }: Props) {
         )}
 
         {method === "qris" && (
-          <p className="mb-4 rounded-lg bg-surface px-3 py-3 text-center text-sm text-ink-soft">
-            Tunjukkan QRIS ke pelanggan. Setelah pembayaran diterima, klik
-            konfirmasi.
-          </p>
+          <div className="mb-4 space-y-3">
+            {qrisImageUrl ? (
+              <div className="flex flex-col items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrisImageUrl}
+                  alt="QRIS"
+                  className="h-60 w-60 rounded-xl border border-hairline object-contain"
+                />
+                <p className="text-center text-sm text-ink-soft">
+                  Scan QRIS di atas. Setelah bayar diterima, klik konfirmasi.
+                </p>
+              </div>
+            ) : (
+              <p className="rounded-lg bg-surface px-3 py-3 text-center text-sm text-ink-soft">
+                Tunjukkan QRIS ke pelanggan. Setelah pembayaran diterima, klik
+                konfirmasi.
+                <br />
+                <span className="text-xs text-ink-faint">
+                  (Unggah gambar QRIS di Pengaturan → Online & QRIS)
+                </span>
+              </p>
+            )}
+          </div>
         )}
 
         <Button

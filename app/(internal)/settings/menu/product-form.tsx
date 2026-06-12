@@ -83,6 +83,7 @@ export function ProductForm({ categories }: { categories: CategoryRow[] }) {
               type="number"
               min="0"
               defaultValue={0}
+              money
             />
           </div>
 

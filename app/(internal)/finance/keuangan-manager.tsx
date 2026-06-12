@@ -82,7 +82,7 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
               </Select>
             </div>
             <div className="w-40">
-              <Input label="Saldo awal" name="saldoAwal" type="number" defaultValue={0} />
+              <Input label="Saldo awal" name="saldoAwal" type="number" defaultValue={0} money />
             </div>
             <Button type="submit" icon={Plus} loading={pending}>
               Tambah
@@ -115,7 +115,7 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
               <Input label="Nama pengeluaran" name="nama" required />
             </div>
             <div className="w-36">
-              <Input label="Nominal" name="nominal" type="number" defaultValue={0} />
+              <Input label="Nominal" name="nominal" type="number" defaultValue={0} money />
             </div>
             <div className="w-36">
               <Select label="Frekuensi" name="frekuensi">
@@ -173,7 +173,7 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
               </Select>
             </div>
             <div className="w-32">
-              <Input label="Nominal" name="nominal" type="number" defaultValue={0} />
+              <Input label="Nominal" name="nominal" type="number" defaultValue={0} money />
             </div>
             <div className="w-24">
               <Input label="Tenor (bln)" name="tenor" type="number" placeholder="0" />
