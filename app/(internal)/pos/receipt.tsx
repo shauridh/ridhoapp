@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -21,10 +22,32 @@ interface Props {
   items: ReceiptItem[]
   paid?: number
   change?: number
+  showPrint?: boolean
   onClose: () => void
 }
 
-export function Receipt({ order, items, paid, change, onClose }: Props) {
+const AUTO_CLOSE_SECONDS = 10
+
+export function Receipt({
+  order,
+  items,
+  paid,
+  change,
+  showPrint = false,
+  onClose,
+}: Props) {
+  const [countdown, setCountdown] = useState(AUTO_CLOSE_SECONDS)
+
+  // Auto-close setelah hitung mundur. Reset jika komponen dilepas.
+  useEffect(() => {
+    if (countdown <= 0) {
+      onClose()
+      return
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [countdown, onClose])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-72 rounded-2xl bg-white p-4 text-sm shadow-lg">
@@ -68,16 +91,18 @@ export function Receipt({ order, items, paid, change, onClose }: Props) {
         </div>
 
         <div className="mt-3 flex gap-2">
-          <Button
-            variant="ghost"
-            icon={Printer}
-            onClick={() => window.print()}
-            className="flex-1"
-          >
-            Cetak
-          </Button>
+          {showPrint && (
+            <Button
+              variant="ghost"
+              icon={Printer}
+              onClick={() => window.print()}
+              className="flex-1"
+            >
+              Cetak
+            </Button>
+          )}
           <Button variant="primary" onClick={onClose} className="flex-1">
-            Tutup
+            Tutup ({countdown})
           </Button>
         </div>
       </div>

@@ -11,6 +11,7 @@ const COL_OPTIONS: GridSetting[] = ["auto", 3, 4, 5]
 export function CashierDisplaySettings() {
   const [cols, setCols] = useState<GridSetting>("auto")
   const [showSearch, setShowSearch] = useState(false)
+  const [showPrint, setShowPrint] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const toast = useToast()
 
@@ -22,6 +23,7 @@ export function CashierDisplaySettings() {
       setCols("auto")
     }
     setShowSearch(localStorage.getItem("pos.showSearch") === "true")
+    setShowPrint(localStorage.getItem("pos.showPrint") === "true")
     setLoaded(true)
   }, [])
 
@@ -34,6 +36,12 @@ export function CashierDisplaySettings() {
   const toggleSearch = (v: boolean) => {
     setShowSearch(v)
     localStorage.setItem("pos.showSearch", v ? "true" : "false")
+    toast.show("Tersimpan di perangkat ini", "success")
+  }
+
+  const togglePrint = (v: boolean) => {
+    setShowPrint(v)
+    localStorage.setItem("pos.showPrint", v ? "true" : "false")
     toast.show("Tersimpan di perangkat ini", "success")
   }
 
@@ -79,6 +87,19 @@ export function CashierDisplaySettings() {
         />
         <label htmlFor="show_search" className="text-sm font-medium text-ink">
           Tampilkan kotak pencarian di kasir
+        </label>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="show_print"
+          checked={showPrint}
+          onChange={(e) => togglePrint(e.target.checked)}
+          className="h-5 w-5 rounded accent-brand"
+        />
+        <label htmlFor="show_print" className="text-sm font-medium text-ink">
+          Tampilkan tombol cetak struk
         </label>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   Drumstick,
   LayoutDashboard,
@@ -10,7 +10,6 @@ import {
   Package,
   Wallet,
   Settings,
-  Receipt,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -29,7 +28,6 @@ const links = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
 
   useEffect(() => {
     const saved = localStorage.getItem("sabana.sidebar")
@@ -42,15 +40,6 @@ export function Sidebar() {
       localStorage.setItem("sabana.sidebar", next ? "collapsed" : "open")
       return next
     })
-  }
-
-  // Kelola Shift: jika sudah di /pos, buka panel via event; jika tidak, arahkan ke /pos.
-  const openShiftPanel = () => {
-    if (pathname === "/pos") {
-      window.dispatchEvent(new Event("open-shift-panel"))
-    } else {
-      router.push("/pos?shift=1")
-    }
   }
 
   return (
@@ -90,13 +79,6 @@ export function Sidebar() {
             </a>
           )
         })}
-        <button
-          onClick={openShiftPanel}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/10"
-        >
-          <Receipt size={20} />
-          {!collapsed && <span>Kelola Shift</span>}
-        </button>
       </nav>
       <form action={logout} className="p-2">
         <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-white/10">

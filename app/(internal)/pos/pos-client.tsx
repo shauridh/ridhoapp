@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Receipt } from "lucide-react"
 import type { ProductRow } from "@/lib/data/products"
 import type { VariantRow } from "@/lib/data/products"
 import { createClient } from "@/lib/supabase/client"
@@ -42,6 +43,7 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [cols, setCols] = useState<GridSetting>("auto")
   const [showSearch, setShowSearch] = useState(false)
+  const [showPrint, setShowPrint] = useState(false)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string | null>(null)
   const [showPayment, setShowPayment] = useState(false)
@@ -66,16 +68,7 @@ export function PosClient({ shiftId, openingBalance }: Props) {
       setCols("auto")
     }
     setShowSearch(localStorage.getItem("pos.showSearch") === "true")
-  }, [])
-
-  // Buka panel shift via tombol di sidebar (custom event atau query ?shift=1).
-  useEffect(() => {
-    const open = () => setShowShift(true)
-    window.addEventListener("open-shift-panel", open)
-    if (new URLSearchParams(window.location.search).get("shift") === "1") {
-      setShowShift(true)
-    }
-    return () => window.removeEventListener("open-shift-panel", open)
+    setShowPrint(localStorage.getItem("pos.showPrint") === "true")
   }, [])
 
   const cartQty: Record<string, number> = {}
@@ -169,35 +162,48 @@ export function PosClient({ shiftId, openingBalance }: Props) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-52px)] gap-4">
-      <div className="flex-1 overflow-y-auto pr-4">
-        <ProductGrid
-          products={products}
-          onSelect={handleSelectProduct}
-          cols={cols}
-          cartQty={cartQty}
-          showSearch={showSearch}
-          query={query}
-          onQueryChange={setQuery}
-          category={category}
-          onCategoryChange={setCategory}
-        />
+    <div className="flex h-[calc(100vh-52px)] flex-col">
+      <div className="mb-2 flex items-center justify-end">
+        <button
+          onClick={() => setShowShift(true)}
+          className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface active:scale-95"
+        >
+          <span className="flex h-2 w-2 rounded-full bg-success" />
+          <Receipt size={18} className="text-brand" />
+          Kelola Shift
+        </button>
       </div>
 
-      <div className="flex w-80 flex-col border-l border-hairline pl-4">
-        <CartView
-          cart={cart}
-          onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
-          onRemove={(i) => setCart((prev) => removeItem(prev, i))}
-          onClear={() => setCart(createCart())}
-          onPay={() => setShowPayment(true)}
-          disabled={loading}
-        />
-        <div className="mt-4">
-          <OnlineOrders />
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        <div className="flex-1 overflow-y-auto pr-4">
+          <ProductGrid
+            products={products}
+            onSelect={handleSelectProduct}
+            cols={cols}
+            cartQty={cartQty}
+            showSearch={showSearch}
+            query={query}
+            onQueryChange={setQuery}
+            category={category}
+            onCategoryChange={setCategory}
+          />
         </div>
-        <div className="mt-4">
-          <OrderHistory />
+
+        <div className="flex w-80 flex-col border-l border-hairline pl-4">
+          <CartView
+            cart={cart}
+            onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
+            onRemove={(i) => setCart((prev) => removeItem(prev, i))}
+            onClear={() => setCart(createCart())}
+            onPay={() => setShowPayment(true)}
+            disabled={loading}
+          />
+          <div className="mt-4">
+            <OnlineOrders />
+          </div>
+          <div className="mt-4">
+            <OrderHistory />
+          </div>
         </div>
       </div>
 
@@ -233,6 +239,7 @@ export function PosClient({ shiftId, openingBalance }: Props) {
           items={receipt.items ?? []}
           paid={receipt.paid}
           change={receipt.change}
+          showPrint={showPrint}
           onClose={() => setReceipt(null)}
         />
       )}
