@@ -7,6 +7,7 @@ const PRESETS = [
   { key: "yesterday", label: "Kemarin" },
   { key: "7d", label: "7 Hari" },
   { key: "30d", label: "30 Hari" },
+  { key: "this_month", label: "Bulan Ini" },
 ];
 
 export function RangeSelector() {

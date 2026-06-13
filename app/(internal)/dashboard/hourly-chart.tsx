@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from "recharts";
 import { ChartEmptyState } from "@/components/ui/chart-skeleton";
 
@@ -38,24 +39,31 @@ export function HourlyChart({ data }: HourlyChartProps) {
     percentage: totalOmzet > 0 ? ((value / totalOmzet) * 100).toFixed(1) : "0",
   }));
 
+  // Only show bars with data > 0 for cleaner display, keep 0 slots for scale
+  const nonZeroHours = chartData.filter((d) => d.omzet > 0).length;
+
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
           Omzet per Jam
         </h3>
-        {peakHours.length > 0 && (
-          <span className="text-xs text-ink-faint">
-            <span className="inline-block h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
-            Jam Puncak: {peakHours.map((h) => `${h.toString().padStart(2, "0")}:00`).join(", ")}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {peakHours.length > 0 && (
+            <span className="flex items-center gap-1 text-xs text-ink-faint">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500"></span>
+              Jam puncak: {peakHours.map((h) => `${h.toString().padStart(2, "0")}:00`).join(", ")}
+              &nbsp;&middot;&nbsp;{rupiah(maxValue)}
+            </span>
+          )}
+          <span className="text-xs text-ink-faint">{nonZeroHours} jam aktif</span>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[600px]">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData} barCategoryGap="30%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis
                 dataKey="hour"
                 tick={{ fontSize: 11 }}
@@ -69,13 +77,15 @@ export function HourlyChart({ data }: HourlyChartProps) {
                 tick={{ fontSize: 12 }}
                 stroke="#999"
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                axisLine={false}
+                tickLine={false}
               />
               <Tooltip
                 formatter={(value) => rupiah(Number(value))}
                 labelFormatter={(label, payload) => {
                   if (payload && payload[0]) {
-                    const data = payload[0].payload;
-                    return `${label} (${data.percentage}% dari total)`;
+                    const d = payload[0].payload;
+                    return `${label} — ${d.percentage}% dari total`;
                   }
                   return label;
                 }}
@@ -87,8 +97,22 @@ export function HourlyChart({ data }: HourlyChartProps) {
                 }}
               />
               <Bar dataKey="omzet" radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey="omzet"
+                  position="top"
+                  fontSize={9}
+                  fill="#666"
+                  formatter={(v) =>
+                    Number(v) === maxValue && maxValue > 0
+                      ? `${(Number(v) / 1000).toFixed(0)}k`
+                      : ""
+                  }
+                />
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.isPeak ? "#f59e0b" : "#10b981"} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.isPeak ? "#f59e0b" : entry.omzet > 0 ? "#10b981" : "#e5e7eb"}
+                  />
                 ))}
               </Bar>
             </BarChart>

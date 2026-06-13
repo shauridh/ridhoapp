@@ -1,4 +1,4 @@
-export type RangePreset = "today" | "yesterday" | "7d" | "30d";
+export type RangePreset = "today" | "yesterday" | "7d" | "30d" | "this_month";
 
 export interface ResolvedRange {
   start: string; // ISO
@@ -38,6 +38,22 @@ export function resolveRange(preset: RangePreset, now: Date = new Date()): Resol
     case "30d":
       days = 30;
       break;
+    case "this_month": {
+      const firstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const today = startOfDayUtc(now);
+      days = Math.max(1, Math.round((today.getTime() - firstOfMonth.getTime()) / 86400000) + 1);
+      endDay = today;
+      const startDayResult = firstOfMonth;
+      const prevEndDay = addDays(startDayResult, -1);
+      const prevStartDay = addDays(prevEndDay, -(days - 1));
+      return {
+        start: startOfDayUtc(startDayResult).toISOString(),
+        end: endOfDayUtc(endDay).toISOString(),
+        prevStart: startOfDayUtc(prevStartDay).toISOString(),
+        prevEnd: endOfDayUtc(prevEndDay).toISOString(),
+        days,
+      };
+    }
     case "today":
     default:
       days = 1;
