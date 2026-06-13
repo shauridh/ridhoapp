@@ -32,6 +32,7 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,9 +43,15 @@ export function ProductForm({
     try {
       const fd = new FormData();
       fd.append("file", file);
+      setUploadStatus("Mengunggah gambar...");
       const result = await uploadProductImage(fd);
-      if (result.ok) setImageUrl(result.url);
-      else setError(result.error);
+      if (result.ok) {
+        setImageUrl(result.url);
+        setUploadStatus("Gambar berhasil diunggah.");
+      } else {
+        setUploadStatus(null);
+        setError(result.error);
+      }
     } finally {
       setUploading(false);
     }
@@ -55,6 +62,7 @@ export function ProductForm({
     setImageUrl(product?.image_url ?? "");
     setError(null);
     setUploading(false);
+    setUploadStatus(null);
   };
 
   const action = async (formData: FormData) => {
@@ -133,11 +141,14 @@ export function ProductForm({
                   disabled={uploading}
                 />
               </label>
-              {imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageUrl} alt="Pratinjau" className="h-11 w-11 rounded-lg object-cover" />
-              )}
             </div>
+            {uploadStatus && <p className="mt-2 text-xs text-ink-soft">{uploadStatus}</p>}
+            {imageUrl && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-surface">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="Pratinjau" className="h-36 w-full object-cover" />
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">
