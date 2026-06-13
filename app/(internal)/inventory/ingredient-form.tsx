@@ -12,11 +12,20 @@ import type { IngredientRow } from "@/lib/data/inventory";
 export function IngredientForm({
   ingredient,
   showButton = true,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   ingredient?: IngredientRow;
   showButton?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  };
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

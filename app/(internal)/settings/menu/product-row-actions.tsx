@@ -53,7 +53,13 @@ export function ProductRowActions({
           Hapus
         </Button>
       </div>
-      <ProductForm categories={categories} product={product} showButton={false} />
+      <ProductForm
+        categories={categories}
+        product={product}
+        showButton={false}
+        open={open}
+        onOpenChange={setOpen}
+      />
     </>
   );
 }

@@ -14,12 +14,21 @@ export function ProductForm({
   categories,
   product,
   showButton = true,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   categories: CategoryRow[];
   product?: ProductRow;
   showButton?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next);
+    else setInternalOpen(next);
+  };
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [uploading, setUploading] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Edit2, Trash2 } from "lucide-react";
 import { deleteIngredient } from "./actions";
 import { IngredientForm } from "./ingredient-form";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import type { IngredientRow } from "@/lib/data/inventory";
 
 export function IngredientRowActions({ ingredient }: { ingredient: IngredientRow }) {
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const dialog = useDialog();
@@ -28,7 +29,15 @@ export function IngredientRowActions({ ingredient }: { ingredient: IngredientRow
   return (
     <>
       <div className="flex items-center justify-end gap-2">
-        <IngredientForm ingredient={ingredient} showButton={false} />
+        <IngredientForm
+          ingredient={ingredient}
+          showButton={false}
+          open={open}
+          onOpenChange={setOpen}
+        />
+        <Button variant="ghost" size="md" icon={Edit2} onClick={() => setOpen(true)}>
+          Edit
+        </Button>
         <Button
           variant="ghost"
           size="md"
