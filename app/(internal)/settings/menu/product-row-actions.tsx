@@ -18,6 +18,7 @@ export function ProductRowActions({
   categories: CategoryRow[];
 }) {
   const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const toast = useToast();
   const dialog = useDialog();
 
@@ -28,7 +29,6 @@ export function ProductRowActions({
         const result = await deleteProduct(product.id);
         if (result.ok) {
           toast.show("Produk dihapus", "success");
-          setOpen(false);
         } else {
           toast.show(result.error, "error");
         }

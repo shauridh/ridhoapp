@@ -81,7 +81,10 @@ export function CategoryChart({ categories }: CategoryChartProps) {
           <Legend
             verticalAlign="bottom"
             height={36}
-            formatter={(value, entry) => `${value}: ${entry.payload.percent}%`}
+            formatter={(value, entry) => {
+              const payload = entry.payload as { percent?: string } | undefined;
+              return `${value}: ${payload?.percent ?? 0}%`;
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

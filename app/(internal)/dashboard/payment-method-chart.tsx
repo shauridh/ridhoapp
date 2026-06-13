@@ -72,7 +72,10 @@ export function PaymentMethodChart({ cash, qris }: PaymentMethodChartProps) {
           <Legend
             verticalAlign="bottom"
             height={36}
-            formatter={(value, entry) => `${value}: ${rupiah(Number(entry.payload.value))}`}
+            formatter={(value, entry) => {
+              const payload = entry.payload as { value?: number } | undefined;
+              return `${value}: ${rupiah(Number(payload?.value ?? 0))}`;
+            }}
           />
         </PieChart>
       </ResponsiveContainer>
