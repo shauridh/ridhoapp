@@ -1,18 +1,15 @@
-import Link from "next/link"
-import { listProducts } from "@/lib/data/products"
-import { listCategories } from "@/lib/data/categories"
-import { ProductForm } from "./product-form"
-import { CategoryManager } from "./category-manager"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { PageHeader } from "@/components/ui/page-header"
-import { UtensilsCrossed } from "lucide-react"
+import { listProducts } from "@/lib/data/products";
+import { listCategories } from "@/lib/data/categories";
+import { ProductForm } from "./product-form";
+import { ProductRowActions } from "./product-row-actions";
+import { CategoryManager } from "./category-manager";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { UtensilsCrossed } from "lucide-react";
 
 export default async function MenuPage() {
-  const [products, categories] = await Promise.all([
-    listProducts(),
-    listCategories(),
-  ])
+  const [products, categories] = await Promise.all([listProducts(), listCategories()]);
 
   return (
     <div className="space-y-4">
@@ -46,7 +43,7 @@ export default async function MenuPage() {
                 <th className="px-4 py-3">Tipe</th>
                 <th className="px-4 py-3 text-right">Harga</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-4 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -93,12 +90,7 @@ export default async function MenuPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/settings/menu/${p.id}`}
-                      className="font-semibold text-brand hover:underline"
-                    >
-                      Kelola
-                    </Link>
+                    <ProductRowActions product={p} categories={categories} />
                   </td>
                 </tr>
               ))}
@@ -107,5 +99,5 @@ export default async function MenuPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }

@@ -12,11 +12,12 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
       exclude: ["node_modules/", "tests/", "**/*.config.ts", "**/*.d.ts", "**/index.ts"],
-      statements: 70,
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      all: true,
+      thresholds: {
+        statements: 70,
+        branches: 70,
+        functions: 70,
+        lines: 70,
+      },
     },
   },
   resolve: {
