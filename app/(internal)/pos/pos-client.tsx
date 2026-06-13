@@ -213,7 +213,7 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
         </div>
 
         <div className="sticky bottom-0 z-20 border-t border-hairline bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mx-auto max-w-5xl grid grid-cols-4 gap-2">
             <button
               onClick={() => setPanel("held")}
               className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface px-3 py-3 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white active:scale-[0.98]"
