@@ -21,12 +21,14 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { logout } from "@/lib/domain/auth";
+import { PosSubButton } from "./pos-sub-button";
 
 interface SubLink {
   href: string;
   label: string;
   icon: React.ElementType;
   exact?: boolean;
+  panel?: string;
 }
 
 interface NavLink {
@@ -44,10 +46,10 @@ const links: NavLink[] = [
     label: "Kasir",
     icon: ShoppingCart,
     children: [
-      { href: "/pos?panel=held", label: "Tersimpan", icon: Bookmark },
-      { href: "/pos?panel=online", label: "Online", icon: Bell },
+      { href: "/pos", label: "Tersimpan", icon: Bookmark, panel: "held" },
+      { href: "/pos", label: "Online", icon: Bell, panel: "online" },
       { href: "/pos/history", label: "Riwayat", icon: History },
-      { href: "/pos?panel=shift", label: "Kelola Shift", icon: Receipt },
+      { href: "/pos", label: "Kelola Shift", icon: Receipt, panel: "shift" },
     ],
   },
   { href: "/settings/menu", label: "Menu", icon: UtensilsCrossed },
@@ -153,8 +155,18 @@ export function Sidebar() {
                 <div className="ml-2 mt-0.5 flex flex-col gap-0.5 border-l border-white/20 pl-3">
                   {l.children!.map((sub) => {
                     const SubIcon = sub.icon;
-                    const subActive =
-                      pathname === sub.href.split("?")[0] && sub.href.split("?")[0] !== "/pos";
+                    const subActive = sub.href !== "/pos" && pathname === sub.href;
+                    if (sub.panel) {
+                      return (
+                        <PosSubButton
+                          key={sub.label}
+                          label={sub.label}
+                          icon={SubIcon}
+                          panel={sub.panel}
+                          active={subActive}
+                        />
+                      );
+                    }
                     return (
                       <Link
                         key={sub.href}

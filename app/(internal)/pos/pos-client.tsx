@@ -76,9 +76,39 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
     return null;
   });
   const [heldRefresh, setHeldRefresh] = useState(0);
+  const [heldCount, setHeldCount] = useState(0);
   const online = useOnlineOrders();
   const toast = useToast();
   const dialog = useDialog();
+
+  // Listen for sidebar sub-menu panel events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const p = (e as CustomEvent<string>).detail as Panel;
+      if (p === "held" || p === "online" || p === "shift") setPanel(p);
+    };
+    window.addEventListener("pos:open-panel", handler);
+    return () => window.removeEventListener("pos:open-panel", handler);
+  }, []);
+
+  // Track held orders count for floating indicator
+  useEffect(() => {
+    const supabase = createClient();
+    const loadCount = () => {
+      supabase
+        .from("held_orders")
+        .select("id", { count: "exact", head: true })
+        .then(({ count }) => setHeldCount(count ?? 0));
+    };
+    loadCount();
+    const channel = supabase
+      .channel("held-orders-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "held_orders" }, loadCount)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -200,6 +230,18 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
+      {/* Floating held-orders indicator — visible when there are parked orders */}
+      {heldCount > 0 && panel !== "held" && (
+        <button
+          onClick={() => setPanel("held")}
+          className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-amber-600 active:scale-95 lg:bottom-8"
+          aria-label={`Buka ${heldCount} pesanan tersimpan`}
+        >
+          <Bookmark size={16} />
+          {heldCount} Tersimpan
+        </button>
+      )}
+
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
           <ProductGrid
