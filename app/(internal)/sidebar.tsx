@@ -109,24 +109,33 @@ export function Sidebar() {
           return (
             <div key={l.href}>
               {hasChildren ? (
-                <button
-                  onClick={() => setOpenGroup(groupOpen ? null : l.href)}
-                  aria-expanded={groupOpen}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                    active ? "bg-white/20 font-semibold" : "hover:bg-white/10"
-                  }`}
+                <div
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${active ? "bg-white/20 font-semibold" : "hover:bg-white/10"}`}
                 >
-                  <Icon size={20} className="shrink-0" />
+                  <Link
+                    href={l.href}
+                    aria-current={active ? "page" : undefined}
+                    className="flex flex-1 items-center gap-3"
+                  >
+                    <Icon size={20} className="shrink-0" />
+                    {!collapsed && <span className="flex-1">{l.label}</span>}
+                  </Link>
                   {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left">{l.label}</span>
+                    <button
+                      onClick={() => setOpenGroup(groupOpen ? null : l.href)}
+                      aria-expanded={groupOpen}
+                      aria-label={
+                        groupOpen ? `Tutup submenu ${l.label}` : `Buka submenu ${l.label}`
+                      }
+                      className="shrink-0 rounded p-0.5 hover:bg-white/20"
+                    >
                       <ChevronDown
                         size={14}
-                        className={`shrink-0 transition-transform ${groupOpen ? "rotate-180" : ""}`}
+                        className={`transition-transform ${groupOpen ? "rotate-180" : ""}`}
                       />
-                    </>
+                    </button>
                   )}
-                </button>
+                </div>
               ) : (
                 <Link
                   href={l.href}
