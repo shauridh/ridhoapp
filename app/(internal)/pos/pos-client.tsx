@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Receipt, Bookmark, Bell, History, ShoppingCart } from "lucide-react";
+import { Bookmark, Bell, ShoppingCart } from "lucide-react";
 import type { ProductRow } from "@/lib/data/products";
 import type { VariantRow } from "@/lib/data/products";
 import { createClient } from "@/lib/supabase/client";
@@ -70,7 +69,12 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
   const [category, setCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanel] = useState<Panel>(() => {
+    if (typeof window === "undefined") return null;
+    const p = new URLSearchParams(window.location.search).get("panel") as Panel;
+    if (p === "held" || p === "online" || p === "shift") return p;
+    return null;
+  });
   const [heldRefresh, setHeldRefresh] = useState(0);
   const online = useOnlineOrders();
   const toast = useToast();
@@ -196,46 +200,6 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
-      {/* Action toolbar */}
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPanel("held")}
-            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
-          >
-            <Bookmark size={16} />
-            <span className="hidden sm:inline">Tersimpan</span>
-          </button>
-          <button
-            onClick={() => setPanel("online")}
-            className="relative flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
-          >
-            <Bell size={16} />
-            <span className="hidden sm:inline">Online</span>
-            {online.pendingCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-2xs font-bold text-white">
-                {online.pendingCount}
-              </span>
-            )}
-          </button>
-          <Link
-            href="/pos/history"
-            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
-          >
-            <History size={16} />
-            <span className="hidden sm:inline">Riwayat</span>
-          </Link>
-        </div>
-        <button
-          onClick={() => setPanel("shift")}
-          className="flex items-center gap-2 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand/90 active:scale-95"
-        >
-          <span className="h-2 w-2 rounded-full bg-success" />
-          <Receipt size={16} />
-          <span className="hidden sm:inline">Kelola Shift</span>
-        </button>
-      </div>
-
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
           <ProductGrid
