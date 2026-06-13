@@ -196,6 +196,46 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
+      {/* Action toolbar */}
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPanel("held")}
+            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
+          >
+            <Bookmark size={16} />
+            <span className="hidden sm:inline">Tersimpan</span>
+          </button>
+          <button
+            onClick={() => setPanel("online")}
+            className="relative flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
+          >
+            <Bell size={16} />
+            <span className="hidden sm:inline">Online</span>
+            {online.pendingCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-2xs font-bold text-white">
+                {online.pendingCount}
+              </span>
+            )}
+          </button>
+          <Link
+            href="/pos/history"
+            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-brand hover:text-white active:scale-95"
+          >
+            <History size={16} />
+            <span className="hidden sm:inline">Riwayat</span>
+          </Link>
+        </div>
+        <button
+          onClick={() => setPanel("shift")}
+          className="flex items-center gap-2 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand/90 active:scale-95"
+        >
+          <span className="h-2 w-2 rounded-full bg-success" />
+          <Receipt size={16} />
+          <span className="hidden sm:inline">Kelola Shift</span>
+        </button>
+      </div>
+
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
           <ProductGrid
@@ -210,44 +250,6 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
             category={category}
             onCategoryChange={setCategory}
           />
-        </div>
-
-        <div className="sticky bottom-0 z-20 border-t border-hairline bg-white/95 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur">
-          <div className="mx-auto max-w-5xl grid grid-cols-4 gap-2">
-            <button
-              onClick={() => setPanel("held")}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface px-3 py-3 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white active:scale-[0.98]"
-            >
-              <Bookmark size={18} />
-              <span>Tersimpan</span>
-            </button>
-            <button
-              onClick={() => setPanel("online")}
-              className="relative flex flex-col items-center justify-center gap-1 rounded-xl bg-surface px-3 py-3 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white active:scale-[0.98]"
-            >
-              <Bell size={18} />
-              <span>Online</span>
-              {online.pendingCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-2xs font-bold text-white">
-                  {online.pendingCount}
-                </span>
-              )}
-            </button>
-            <Link
-              href="/pos/history"
-              className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface px-3 py-3 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white active:scale-[0.98]"
-            >
-              <History size={18} />
-              <span>Riwayat</span>
-            </Link>
-            <button
-              onClick={() => setPanel("shift")}
-              className="flex flex-col items-center justify-center gap-1 rounded-xl bg-surface px-3 py-3 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white active:scale-[0.98]"
-            >
-              <Receipt size={18} />
-              <span>Kelola Shift</span>
-            </button>
-          </div>
         </div>
 
         {/* Cart sidebar: hanya tampil di layar lebar (lg+) */}

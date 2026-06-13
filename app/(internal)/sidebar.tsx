@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { usePathname } from "next/navigation"
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Drumstick,
   LayoutDashboard,
@@ -13,8 +14,8 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-} from "lucide-react"
-import { logout } from "@/lib/domain/auth"
+} from "lucide-react";
+import { logout } from "@/lib/domain/auth";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,24 +24,22 @@ const links = [
   { href: "/inventory", label: "Stok", icon: Package },
   { href: "/finance", label: "Keuangan", icon: Wallet },
   { href: "/settings", label: "Pengaturan", icon: Settings },
-]
+];
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
-  const pathname = usePathname()
-
-  useEffect(() => {
-    const saved = localStorage.getItem("sabana.sidebar")
-    if (saved === "collapsed") setCollapsed(true)
-  }, [])
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sabana.sidebar") === "collapsed";
+  });
+  const pathname = usePathname();
 
   const toggle = () => {
     setCollapsed((prev) => {
-      const next = !prev
-      localStorage.setItem("sabana.sidebar", next ? "collapsed" : "open")
-      return next
-    })
-  }
+      const next = !prev;
+      localStorage.setItem("sabana.sidebar", next ? "collapsed" : "open");
+      return next;
+    });
+  };
 
   return (
     <aside
@@ -54,11 +53,7 @@ export function Sidebar() {
             <Drumstick size={20} /> Sabana
           </span>
         )}
-        <button
-          onClick={toggle}
-          className="text-white/90"
-          aria-label="Buka tutup menu samping"
-        >
+        <button onClick={toggle} className="text-white/90" aria-label="Buka tutup menu samping">
           {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
         </button>
       </div>
@@ -69,20 +64,21 @@ export function Sidebar() {
           const active =
             l.href === "/settings"
               ? pathname === "/settings"
-              : pathname === l.href || pathname.startsWith(l.href + "/")
-          const Icon = l.icon
+              : pathname === l.href || pathname.startsWith(l.href + "/");
+          const Icon = l.icon;
           return (
-            <a
+            <Link
               key={l.href}
               href={l.href}
+              aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                 active ? "bg-white/20 font-semibold" : "hover:bg-white/10"
               }`}
             >
               <Icon size={20} />
               {!collapsed && <span>{l.label}</span>}
-            </a>
-          )
+            </Link>
+          );
         })}
       </nav>
       <form action={logout} className="p-2">
@@ -92,5 +88,5 @@ export function Sidebar() {
         </button>
       </form>
     </aside>
-  )
+  );
 }

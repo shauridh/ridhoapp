@@ -1,32 +1,43 @@
-import { listCashflowCategories, listCashflowEntries, getCashflowSummary } from "@/lib/data/cashflow"
-import { listAkun, listOpex, listPiutang } from "@/lib/data/akun"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { StatCard } from "@/components/ui/stat-card"
-import { PageHeader } from "@/components/ui/page-header"
-import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react"
-import { ManualEntryForm } from "./manual-entry-form"
-import { KeuanganManager } from "./keuangan-manager"
+import {
+  listCashflowCategories,
+  listCashflowEntries,
+  getCashflowSummary,
+} from "@/lib/data/cashflow";
+import { listAkun, listOpex, listPiutang } from "@/lib/data/akun";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { TrendingUp, Receipt, BarChart3, Wallet } from "lucide-react";
+import { ManualEntryForm } from "./manual-entry-form";
+import { KeuanganManager } from "./keuangan-manager";
 
-const TODAY = new Date()
-const START_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1).toISOString().slice(0, 10)
-const END_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0).toISOString().slice(0, 10)
-
-const kindBadge: Record<string, { tone: "neutral" | "accent" | "success" | "danger"; label: string }> = {
+const kindBadge: Record<
+  string,
+  { tone: "neutral" | "accent" | "success" | "danger"; label: string }
+> = {
   income: { tone: "success", label: "INCOME" },
   capital: { tone: "accent", label: "CAPITAL" },
   opex: { tone: "danger", label: "OPEX" },
   capex: { tone: "danger", label: "CAPEX" },
   withdrawal: { tone: "neutral", label: "WITHDRAWAL" },
-}
+};
 
 export default async function FinancePage() {
-  const categories = await listCashflowCategories()
-  const entries = await listCashflowEntries(START_OF_MONTH, END_OF_MONTH)
-  const summary = await getCashflowSummary(START_OF_MONTH, END_OF_MONTH)
-  const akun = await listAkun()
-  const opex = await listOpex()
-  const piutang = await listPiutang()
+  const TODAY = new Date();
+  const START_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
+  const END_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
+
+  const categories = await listCashflowCategories();
+  const entries = await listCashflowEntries(START_OF_MONTH, END_OF_MONTH);
+  const summary = await getCashflowSummary(START_OF_MONTH, END_OF_MONTH);
+  const akun = await listAkun();
+  const opex = await listOpex();
+  const piutang = await listPiutang();
 
   return (
     <div className="space-y-4">
@@ -79,7 +90,10 @@ export default async function FinancePage() {
             </thead>
             <tbody>
               {entries.map((e) => {
-                const badge = kindBadge[e.kind] ?? { tone: "neutral" as const, label: e.kind.toUpperCase() }
+                const badge = kindBadge[e.kind] ?? {
+                  tone: "neutral" as const,
+                  label: e.kind.toUpperCase(),
+                };
                 return (
                   <tr
                     key={e.id}
@@ -93,17 +107,13 @@ export default async function FinancePage() {
                       <Badge tone={badge.tone}>{badge.label}</Badge>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-success">
-                      {e.direction === "in"
-                        ? `Rp ${e.amount.toLocaleString("id-ID")}`
-                        : "-"}
+                      {e.direction === "in" ? `Rp ${e.amount.toLocaleString("id-ID")}` : "-"}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-danger">
-                      {e.direction === "out"
-                        ? `Rp ${e.amount.toLocaleString("id-ID")}`
-                        : "-"}
+                      {e.direction === "out" ? `Rp ${e.amount.toLocaleString("id-ID")}` : "-"}
                     </td>
                   </tr>
-                )
+                );
               })}
               {entries.length === 0 && (
                 <tr>
@@ -117,5 +127,5 @@ export default async function FinancePage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

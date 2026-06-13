@@ -49,7 +49,7 @@ export async function getOrderVoidMetrics(
     };
   }
 
-  const voidOrders = orders.filter((o) => o.status === "void").length;
+  const voidOrders = orders.filter((o) => o.status === "voided").length;
   const completedOrders = orders.filter((o) => o.status === "completed").length;
 
   return {
