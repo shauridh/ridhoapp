@@ -26,6 +26,14 @@ export default async function InventoryPage() {
   const emptyCount = ingredients.filter((i) => i.stock_qty <= 0).length;
   const opts = ingredients.map((i) => ({ id: i.id, name: i.name, unit: i.unit }));
 
+  // Sortir: stok habis dan menipis ke atas, sisanya alfabetis
+  const sortedIngredients = [...ingredients].sort((a, b) => {
+    const rankA = a.stock_qty <= 0 ? 0 : a.stock_qty <= a.low_stock_threshold ? 1 : 2;
+    const rankB = b.stock_qty <= 0 ? 0 : b.stock_qty <= b.low_stock_threshold ? 1 : 2;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.name.localeCompare(b.name, "id");
+  });
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -87,38 +95,60 @@ export default async function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {ingredients.map((i) => {
+              {sortedIngredients.map((i) => {
                 const totalUsed = usageMap.get(i.id) ?? 0;
                 const perDay = avgDailyUsage(totalUsed, WINDOW_DAYS);
                 const empty = i.stock_qty <= 0;
                 const low = !empty && i.stock_qty <= i.low_stock_threshold;
+                // Fast moving: pakai > 0 dan sisa kurang dari 3 hari
                 const daysLeft = perDay > 0 ? Math.floor(i.stock_qty / perDay) : null;
+                const fastMoving =
+                  !empty && !low && perDay > 0 && daysLeft !== null && daysLeft <= 7;
+
+                // Warna baris: kritis paling mencolok
+                const rowClass = empty
+                  ? "border-b border-hairline last:border-0 bg-tint-red/30 text-ink transition hover:bg-tint-red/40"
+                  : low
+                    ? "border-b border-hairline last:border-0 bg-tint-amber/30 text-ink transition hover:bg-tint-amber/40"
+                    : "border-b border-hairline last:border-0 text-ink transition hover:bg-surface/50";
 
                 return (
-                  <tr
-                    key={i.id}
-                    className="border-b border-hairline last:border-0 text-ink transition hover:bg-surface/50"
-                  >
-                    <td className="px-4 py-3 font-medium">{i.name}</td>
+                  <tr key={i.id} className={rowClass}>
+                    <td className="px-4 py-3">
+                      <span className={`font-medium${empty || low ? " font-semibold" : ""}`}>
+                        {i.name}
+                      </span>
+                      {fastMoving && !empty && !low && (
+                        <span className="ml-2 inline-block rounded-full bg-tint-blue px-1.5 py-0.5 text-2xs font-semibold text-info">
+                          cepat habis
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="font-semibold">{fmt(i.stock_qty)}</span>{" "}
+                      <span
+                        className={`font-semibold${empty ? " text-danger" : low ? " text-accent" : ""}`}
+                      >
+                        {fmt(i.stock_qty)}
+                      </span>{" "}
                       <span className="text-xs text-ink-soft">{i.unit}</span>
                     </td>
                     <td className="hidden px-4 py-3 text-right text-ink-soft md:table-cell">
                       {fmt(i.low_stock_threshold)} {i.unit}
                     </td>
                     <td className="hidden px-4 py-3 text-right text-ink-soft lg:table-cell">
-                      {perDay > 0 ? `${fmt(perDay)} ${i.unit}` : "—"}
+                      {perDay > 0 ? `${fmt(perDay)} ${i.unit}` : "\u2014"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {daysLeft === null ? (
-                        <span className="text-ink-faint">—</span>
+                        <span className="text-ink-faint">\u2014</span>
                       ) : daysLeft === 0 ? (
-                        <span className="font-semibold text-danger">Habis hari ini</span>
+                        <span className="font-bold text-danger">Habis hari ini</span>
+                      ) : daysLeft <= 3 ? (
+                        <span className="font-semibold text-danger">\u00b1 {daysLeft} hari</span>
+                      ) : daysLeft <= 7 ? (
+                        <span className="font-semibold text-accent">\u00b1 {daysLeft} hari</span>
                       ) : (
-                        <span className={daysLeft <= 3 ? "font-semibold text-accent" : ""}>
-                          ± {daysLeft} hari
-                        </span>
+                        <span className="text-ink-soft">\u00b1 {daysLeft} hari</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

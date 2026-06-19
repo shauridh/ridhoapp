@@ -1,56 +1,57 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useTransition } from "react"
-import { X, Receipt, LogOut } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { cashOut, closeShift } from "./shift/actions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/toast"
+import { useEffect, useState, useTransition } from "react";
+import { X, Receipt, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cashOut, closeShift } from "./shift/actions";
+import { MIN_DRAWER_BALANCE } from "@/lib/pos/constants";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 
 interface Props {
-  shiftId: string
-  openingBalance: number
-  onClose: () => void
+  shiftId: string;
+  openingBalance: number;
+  onClose: () => void;
 }
 
 interface Movement {
-  id: string
-  amount: number
-  reason: string | null
-  created_at: string
+  id: string;
+  amount: number;
+  reason: string | null;
+  created_at: string;
 }
 
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
+const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
-  const [cashSales, setCashSales] = useState(0)
-  const [qrisTotal, setQrisTotal] = useState(0)
-  const [movements, setMovements] = useState<Movement[]>([])
-  const [coAmount, setCoAmount] = useState("")
-  const [coReason, setCoReason] = useState("")
-  const [counted, setCounted] = useState("")
-  const [withdrawal, setWithdrawal] = useState("0")
-  const [pending, startTransition] = useTransition()
-  const toast = useToast()
+  const [cashSales, setCashSales] = useState(0);
+  const [qrisTotal, setQrisTotal] = useState(0);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [coAmount, setCoAmount] = useState("");
+  const [coReason, setCoReason] = useState("");
+  const [counted, setCounted] = useState("");
+  const [withdrawal, setWithdrawal] = useState("0");
+  const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   const load = () => {
-    const supabase = createClient()
+    const supabase = createClient();
     supabase
       .from("orders")
       .select("total, payment_method")
       .eq("shift_id", shiftId)
       .eq("status", "completed")
       .then(({ data }) => {
-        let cash = 0
-        let qris = 0
+        let cash = 0;
+        let qris = 0;
         for (const o of data ?? []) {
-          if (o.payment_method === "cash") cash += Number(o.total)
-          if (o.payment_method === "qris") qris += Number(o.total)
+          if (o.payment_method === "cash") cash += Number(o.total);
+          if (o.payment_method === "qris") qris += Number(o.total);
         }
-        setCashSales(cash)
-        setQrisTotal(qris)
-      })
+        setCashSales(cash);
+        setQrisTotal(qris);
+      });
     supabase
       .from("cash_drawer_movements")
       .select("id, amount, reason, created_at")
@@ -64,51 +65,61 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
             amount: Number(m.amount),
             reason: m.reason,
             created_at: m.created_at,
-          })),
-        ),
-      )
-  }
+          }))
+        )
+      );
+  };
 
-  useEffect(load, [shiftId])
+  useEffect(load, [shiftId]);
 
-  const cashOutTotal = movements.reduce((s, m) => s + m.amount, 0)
-  const expected = openingBalance + cashSales - cashOutTotal
-  const diff = counted ? Number(counted) - expected : null
+  const cashOutTotal = movements.reduce((s, m) => s + m.amount, 0);
+  const expected = openingBalance + cashSales - cashOutTotal;
+  const diff = counted ? Number(counted) - expected : null;
+  const closingBalance = Number(counted || 0) - Number(withdrawal || 0);
+  const belowMinimum = counted !== "" && closingBalance < MIN_DRAWER_BALANCE;
+
+  // Computed value: saran penarikan
+  const suggestedWithdrawal =
+    counted === ""
+      ? 0
+      : Number(counted) > MIN_DRAWER_BALANCE
+        ? Number(counted) - MIN_DRAWER_BALANCE
+        : 0;
 
   const handleCashOut = () => {
     if (!coAmount || Number(coAmount) <= 0) {
-      toast.show("Nominal harus lebih dari 0", "error")
-      return
+      toast.show("Nominal harus lebih dari 0", "error");
+      return;
     }
     startTransition(async () => {
-      const result = await cashOut(shiftId, Number(coAmount), coReason)
+      const result = await cashOut(shiftId, Number(coAmount), coReason);
       if (result.ok) {
-        toast.show("Cash out dicatat", "success")
-        setCoAmount("")
-        setCoReason("")
-        load()
+        toast.show("Cash out dicatat", "success");
+        setCoAmount("");
+        setCoReason("");
+        load();
       } else {
-        toast.show(result.error, "error")
+        toast.show(result.error, "error");
       }
-    })
-  }
+    });
+  };
 
   const handleClose = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     startTransition(async () => {
       const result = await closeShift({
         shiftId,
         countedCash: Number(counted),
         ownerWithdrawal: Number(withdrawal),
-      })
+      });
       if (result.ok) {
-        toast.show("Shift ditutup", "success")
-        onClose()
+        toast.show("Shift ditutup", "success");
+        onClose();
       } else {
-        toast.show(result.error, "error")
+        toast.show(result.error, "error");
       }
-    })
-  }
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
@@ -123,27 +134,48 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
         </div>
 
         <div className="space-y-4 p-4">
+          {/* Ringkasan kas — expected vs actual sebagai fokus utama */}
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-2 text-sm font-semibold text-ink">Ringkasan Kas</h3>
+            <h3 className="mb-3 text-sm font-semibold text-ink">Ringkasan Kas</h3>
             <dl className="space-y-1 text-sm">
               <Row label="Saldo Awal" value={rupiah(openingBalance)} />
               <Row label="Tunai Masuk" value={rupiah(cashSales)} />
               <Row label="QRIS" value={rupiah(qrisTotal)} />
-              <Row label="Kas Keluar" value={`- ${rupiah(cashOutTotal)}`} />
-              <div className="mt-1 border-t border-hairline pt-1">
-                <Row
-                  label="Kas Seharusnya"
-                  value={rupiah(expected)}
-                  bold
-                />
-              </div>
+              <Row label="Kas Keluar" value={`− ${rupiah(cashOutTotal)}`} negative />
             </dl>
+            {/* Kas Seharusnya — block besar agar mudah dipindai */}
+            <div className="mt-3 rounded-xl bg-surface px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Kas Seharusnya
+                </span>
+                <span className="text-lg font-bold text-brand">{rupiah(expected)}</span>
+              </div>
+            </div>
+            {/* Selisih ditampilkan segera setelah counted diisi */}
+            {diff !== null && (
+              <div
+                className={`mt-2 flex items-center justify-between rounded-xl px-4 py-3 ${
+                  diff === 0 ? "bg-tint-green" : diff > 0 ? "bg-tint-green" : "bg-tint-red"
+                }`}
+              >
+                <span
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    diff < 0 ? "text-danger" : "text-success"
+                  }`}
+                >
+                  {diff >= 0 ? "Lebih" : "Kurang"}
+                </span>
+                <span className={`text-lg font-bold ${diff < 0 ? "text-danger" : "text-success"}`}>
+                  {diff < 0 ? "−" : "+"}
+                  {rupiah(Math.abs(diff))}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-2 text-sm font-semibold text-ink">
-              Pengeluaran Drawer
-            </h3>
+            <h3 className="mb-2 text-sm font-semibold text-ink">Pengeluaran Drawer</h3>
             {movements.length === 0 ? (
               <p className="text-sm text-ink-soft">Belum ada pengeluaran.</p>
             ) : (
@@ -162,9 +194,7 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
                         })}
                       </div>
                     </div>
-                    <span className="font-semibold text-danger">
-                      - {rupiah(m.amount)}
-                    </span>
+                    <span className="font-semibold text-danger">- {rupiah(m.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -207,14 +237,25 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
                 inputMode="numeric"
                 required
               />
-              {diff !== null && (
-                <div
-                  className={`text-sm ${diff >= 0 ? "text-success" : "text-danger"}`}
-                >
-                  Selisih: {rupiah(Math.abs(diff))}{" "}
-                  {diff >= 0 ? "(lebih)" : "(kurang)"}
+              {/* Selisih ditampilkan di Ringkasan Kas di atas saat counted diisi */}
+              {/* Saran nominal penarikan: semua kelebihan di atas minimum */}
+              {suggestedWithdrawal > 0 && (
+                <div className="rounded-lg bg-tint-amber px-3 py-2 text-xs text-ink">
+                  <span className="font-medium">Saran penarikan: </span>
+                  <button
+                    type="button"
+                    className="font-bold text-brand underline-offset-2 hover:underline"
+                    onClick={() => setWithdrawal(String(suggestedWithdrawal))}
+                  >
+                    Rp {suggestedWithdrawal.toLocaleString("id-ID")}
+                  </button>
+                  <span className="text-ink-soft">
+                    {" "}
+                    (sisakan Rp {MIN_DRAWER_BALANCE.toLocaleString("id-ID")} di laci)
+                  </span>
                 </div>
               )}
+
               <Input
                 type="number"
                 label="Uang Diambil Owner"
@@ -222,10 +263,30 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
                 onChange={(e) => setWithdrawal(e.target.value)}
                 inputMode="numeric"
               />
+
+              {/* Info saldo tersisa setelah penarikan */}
+              {counted !== "" && (
+                <div
+                  className={`rounded-lg px-3 py-2 text-sm ${
+                    belowMinimum ? "bg-tint-red text-danger" : "bg-tint-green text-success"
+                  }`}
+                >
+                  <span className="font-medium">
+                    Kas tersisa: Rp {closingBalance.toLocaleString("id-ID")}
+                  </span>
+                  {belowMinimum && (
+                    <div className="mt-0.5 text-xs">
+                      Minimum yang harus tersisa Rp {MIN_DRAWER_BALANCE.toLocaleString("id-ID")}.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 variant="primary"
                 loading={pending}
+                disabled={belowMinimum}
                 className="w-full"
               >
                 Tutup Shift
@@ -235,22 +296,30 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function Row({
   label,
   value,
   bold,
+  negative,
 }: {
-  label: string
-  value: string
-  bold?: boolean
+  label: string;
+  value: string;
+  bold?: boolean;
+  negative?: boolean;
 }) {
   return (
     <div className="flex justify-between">
       <dt className="text-ink-soft">{label}</dt>
-      <dd className={bold ? "font-bold text-brand" : "text-ink"}>{value}</dd>
+      <dd
+        className={
+          bold ? "font-bold text-brand" : negative ? "font-medium text-danger" : "text-ink"
+        }
+      >
+        {value}
+      </dd>
     </div>
-  )
+  );
 }

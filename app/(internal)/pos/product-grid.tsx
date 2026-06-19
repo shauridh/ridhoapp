@@ -1,26 +1,23 @@
-"use client"
+"use client";
 
-import { useMemo } from "react"
-import { Search } from "lucide-react"
-import type { ProductRow } from "@/lib/data/products"
-import { gridStyle, type GridSetting } from "@/lib/domain/grid"
-import {
-  filterProducts,
-  extractCategories,
-} from "@/lib/domain/product-filter"
-import { CategoryChips } from "./category-chips"
+import { useMemo } from "react";
+import { Search } from "lucide-react";
+import type { ProductRow } from "@/lib/data/products";
+import { gridStyle, type GridSetting } from "@/lib/domain/grid";
+import { filterProducts, extractCategories } from "@/lib/domain/product-filter";
+import { CategoryChips } from "./category-chips";
 
 interface Props {
-  products: ProductRow[]
-  loading?: boolean
-  onSelect: (product: ProductRow) => void
-  cols: GridSetting
-  cartQty: Record<string, number>
-  showSearch: boolean
-  query: string
-  onQueryChange: (q: string) => void
-  category: string | null
-  onCategoryChange: (c: string | null) => void
+  products: ProductRow[];
+  loading?: boolean;
+  onSelect: (product: ProductRow) => void;
+  cols: GridSetting;
+  cartQty: Record<string, number>;
+  showSearch: boolean;
+  query: string;
+  onQueryChange: (q: string) => void;
+  category: string | null;
+  onCategoryChange: (c: string | null) => void;
 }
 
 export function ProductGrid({
@@ -35,11 +32,11 @@ export function ProductGrid({
   category,
   onCategoryChange,
 }: Props) {
-  const categories = useMemo(() => extractCategories(products), [products])
+  const categories = useMemo(() => extractCategories(products), [products]);
   const visible = useMemo(
     () => filterProducts(products, query, category),
-    [products, query, category],
-  )
+    [products, query, category]
+  );
 
   return (
     <div className="space-y-3">
@@ -60,11 +57,7 @@ export function ProductGrid({
           </div>
         )}
 
-        <CategoryChips
-          categories={categories}
-          active={category}
-          onChange={onCategoryChange}
-        />
+        <CategoryChips categories={categories} active={category} onChange={onCategoryChange} />
       </div>
 
       <div className="grid gap-3" style={gridStyle(cols)}>
@@ -83,49 +76,52 @@ export function ProductGrid({
           ))}
         {!loading &&
           visible.map((p) => {
-          const qty = cartQty[p.id] ?? 0
-          return (
-            <button
-              key={p.id}
-              onClick={() => onSelect(p)}
-              className="relative overflow-hidden rounded-2xl border border-hairline bg-white text-center shadow-sm transition hover:shadow-lg active:scale-[0.97]"
-            >
-              {qty > 0 && (
-                <span className="absolute right-2 top-2 z-10 flex h-7 min-w-7 items-center justify-center rounded-full bg-brand px-1.5 text-sm font-bold text-white shadow">
-                  {qty}
-                </span>
-              )}
-              <div className="aspect-square bg-surface">
-                {p.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.image_url}
-                    alt={p.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-3xl">
-                    🍗
-                  </div>
+            const qty = cartQty[p.id] ?? 0;
+            const inCart = qty > 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelect(p)}
+                aria-label={`${p.name} — Rp ${p.base_price.toLocaleString("id-ID")}${inCart ? `, ${qty} di keranjang` : ""}`}
+                className={`relative overflow-hidden rounded-2xl border text-center shadow-sm transition active:scale-[0.97] hover:shadow-lg ${
+                  inCart ? "border-brand ring-2 ring-brand/20 bg-white" : "border-hairline bg-white"
+                }`}
+              >
+                {/* Badge qty di keranjang */}
+                {inCart && (
+                  <span className="absolute right-2 top-2 z-10 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-brand px-1.5 text-sm font-bold text-white shadow">
+                    {qty}
+                  </span>
                 )}
-              </div>
-              <div className="p-2">
-                <div className="text-sm font-bold text-ink">{p.name}</div>
-                <div className="text-sm font-bold text-brand">
-                  Rp {p.base_price.toLocaleString("id-ID")}
+                {/* Gambar produk */}
+                <div className="aspect-square bg-surface">
+                  {p.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-3xl">
+                      🍗
+                    </div>
+                  )}
                 </div>
-              </div>
-            </button>
-          )
-        })}
+                {/* Info produk: nama dan harga diperbesar untuk mudah dipindai */}
+                <div className="p-2">
+                  <div className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
+                    {p.name}
+                  </div>
+                  <div className="mt-0.5 text-sm font-bold text-brand">
+                    Rp {p.base_price.toLocaleString("id-ID")}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         {!loading && visible.length === 0 && (
           <p className="col-span-full py-8 text-center text-ink-soft">
-            {products.length === 0
-              ? "Belum ada produk aktif."
-              : "Produk tidak ditemukan."}
+            {products.length === 0 ? "Belum ada produk aktif." : "Produk tidak ditemukan."}
           </p>
         )}
       </div>
     </div>
-  )
+  );
 }
