@@ -10,7 +10,7 @@ import { resolveRange, type RangePreset } from "@/lib/domain/date-range";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { RangeSelector } from "./range-selector";
-import { TrendingUp, Receipt, ShoppingBag, Banknote, Star, Clock } from "lucide-react";
+import { TrendingUp, Receipt, ShoppingBag, Banknote, Star, Clock, Tag } from "lucide-react";
 import { HourlyChart } from "./hourly-chart";
 import { DailyChart } from "./daily-chart";
 import { TopProductsChart } from "./top-products-chart";
@@ -69,6 +69,12 @@ export default async function DashboardPage({
   const maxHourVal = Math.max(...hourlyData);
   const peakHourIdx = maxHourVal > 0 ? hourlyData.indexOf(maxHourVal) : null;
 
+  // Dominant category
+  const topCategory = categories[0] ?? null;
+  const totalCatOmzet = categories.reduce((s, c) => s + c.omzet, 0);
+  const topCategoryPercent =
+    topCategory && totalCatOmzet > 0 ? Math.round((topCategory.omzet / totalCatOmzet) * 100) : null;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" actions={<RangeSelector />} />
@@ -117,56 +123,121 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* Callout cards */}
-      {(bestProduct || peakHourIdx !== null || bestDay) && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {bestProduct && (
-            <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-amber text-accent">
-                <Star size={18} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs text-ink-soft">Produk Terlaris</p>
-                <p className="truncate font-semibold text-ink">{bestProduct.name}</p>
-                <p className="text-xs text-ink-soft">
-                  {bestProduct.qty} terjual &middot; {rupiah(bestProduct.omzet)}
-                </p>
+      {/* Insight callout cards */}
+      {(bestProduct || peakHourIdx !== null || bestDay || topCategory) && (
+        <div className="space-y-2">
+          <h2 className="px-1 text-sm font-medium text-ink-soft">Insight Operasional</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {bestProduct ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-amber text-accent">
+                  <Star size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Produk Terlaris</p>
+                  <p className="truncate font-semibold text-ink">{bestProduct.name}</p>
+                  <p className="text-xs text-ink-soft">
+                    {bestProduct.qty} terjual &middot; {rupiah(bestProduct.omzet)}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-          {peakHourIdx !== null && (
-            <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-green text-success">
-                <Clock size={18} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs text-ink-soft">Jam Puncak</p>
-                <p className="font-semibold text-ink">
-                  {String(peakHourIdx).padStart(2, "0")}:00 &ndash;{" "}
-                  {String(peakHourIdx + 1).padStart(2, "0")}:00
-                </p>
-                <p className="text-xs text-ink-soft">{rupiah(maxHourVal)}</p>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-hairline bg-surface px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-ink-faint">
+                  <Star size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Produk Terlaris</p>
+                  <p className="text-xs text-ink-faint">Belum ada data</p>
+                </div>
               </div>
-            </div>
-          )}
-          {bestDay && bestDay.total > 0 && r.days > 1 && (
-            <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-blue text-info">
-                <TrendingUp size={18} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs text-ink-soft">Hari Terbaik</p>
-                <p className="font-semibold text-ink">
-                  {new Date(bestDay.date).toLocaleDateString("id-ID", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </p>
-                <p className="text-xs text-ink-soft">{rupiah(bestDay.total)}</p>
+            )}
+            {peakHourIdx !== null ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-green text-success">
+                  <Clock size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Jam Puncak</p>
+                  <p className="font-semibold text-ink">
+                    {String(peakHourIdx).padStart(2, "0")}:00 &ndash;{" "}
+                    {String(peakHourIdx + 1).padStart(2, "0")}:00
+                  </p>
+                  <p className="text-xs text-ink-soft">{rupiah(maxHourVal)}</p>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-hairline bg-surface px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-ink-faint">
+                  <Clock size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Jam Puncak</p>
+                  <p className="text-xs text-ink-faint">Belum ada transaksi</p>
+                </div>
+              </div>
+            )}
+            {bestDay && bestDay.total > 0 && r.days > 1 ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-blue text-info">
+                  <TrendingUp size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Hari Terbaik</p>
+                  <p className="font-semibold text-ink">
+                    {new Date(bestDay.date).toLocaleDateString("id-ID", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
+                  <p className="text-xs text-ink-soft">{rupiah(bestDay.total)}</p>
+                </div>
+              </div>
+            ) : r.days > 1 ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-hairline bg-surface px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-ink-faint">
+                  <TrendingUp size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Hari Terbaik</p>
+                  <p className="text-xs text-ink-faint">Belum ada data</p>
+                </div>
+              </div>
+            ) : null}
+            {topCategory && topCategoryPercent !== null ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 shadow-sm">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    topCategoryPercent >= 60
+                      ? "bg-tint-red text-brand"
+                      : topCategoryPercent >= 40
+                        ? "bg-tint-amber text-accent"
+                        : "bg-tint-blue text-info"
+                  }`}
+                >
+                  <Tag size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Kategori Dominan</p>
+                  <p className="truncate font-semibold text-ink">{topCategory.category}</p>
+                  <p className="text-xs text-ink-soft">
+                    {topCategoryPercent}% dari omzet &middot; {rupiah(topCategory.omzet)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-hairline bg-surface px-4 py-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-ink-faint">
+                  <Tag size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-ink-soft">Kategori Dominan</p>
+                  <p className="text-xs text-ink-faint">Belum ada data</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
