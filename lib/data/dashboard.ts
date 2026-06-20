@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SaleLine, DatedSale, CategoryLine } from "@/lib/domain/report";
+import { toWibDateString, toWibHour } from "@/lib/utils/wib";
 
 export interface DashboardData {
   lines: SaleLine[];
@@ -54,7 +55,7 @@ export async function getDashboardData(startIso: string, endIso: string): Promis
     if (o.payment_method === "cash") cashTotal += Number(o.total);
     if (o.payment_method === "qris") qrisTotal += Number(o.total);
     datedSales.push({
-      date: new Date(o.created_at).toISOString().slice(0, 10),
+      date: toWibDateString(new Date(o.created_at)),
       total: Number(o.total),
     });
   }
@@ -66,7 +67,7 @@ export async function getDashboardData(startIso: string, endIso: string): Promis
 
   for (const item of itemList) {
     const order = item.orders as unknown as { created_at: string } | null;
-    const hour = order ? new Date(order.created_at).getHours() : 0;
+    const hour = order ? toWibHour(new Date(order.created_at)) : 0;
     const product = item.products as unknown as { category: string } | null;
 
     totalItem += item.qty;

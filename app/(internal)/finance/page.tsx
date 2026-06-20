@@ -24,13 +24,11 @@ const kindBadge: Record<
 };
 
 export default async function FinancePage() {
-  const TODAY = new Date();
-  const START_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
-    .toISOString()
-    .slice(0, 10);
-  const END_OF_MONTH = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0)
-    .toISOString()
-    .slice(0, 10);
+  const todayWib = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const [year, month] = todayWib.split("-").map(Number);
+  const START_OF_MONTH = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate(); // last day of month
+  const END_OF_MONTH = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const categories = await listCashflowCategories();
   const entries = await listCashflowEntries(START_OF_MONTH, END_OF_MONTH);

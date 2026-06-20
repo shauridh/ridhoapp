@@ -16,7 +16,10 @@ const fmt = (n: number, max = 2) => n.toLocaleString("id-ID", { maximumFractionD
 
 export default async function InventoryPage() {
   const ingredients = await listIngredients();
-  const since = new Date(new Date().getTime() - WINDOW_DAYS * 86400000).toISOString();
+  const todayWib = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const sinceDate = new Date(`${todayWib}T00:00:00+07:00`);
+  sinceDate.setDate(sinceDate.getDate() - WINDOW_DAYS);
+  const since = sinceDate.toISOString();
   const usage = await usageSince(since);
   const usageMap = new Map(usage.map((u) => [u.ingredient_id, u.total_used]));
 

@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function getBestSellerIds(): Promise<string[]> {
   const supabase = await createClient();
 
-  const since = new Date();
+  const todayWib = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const since = new Date(`${todayWib}T00:00:00+07:00`);
   since.setDate(since.getDate() - 90);
   const sinceIso = since.toISOString();
 

@@ -189,7 +189,7 @@ export async function cashOut(shiftId: string, amount: number, reason: string) {
 
   // Catat ke ledger keuangan (best-effort — tidak menggagalkan cash-out jika error)
   const { error: cfError } = await supabase.from("cashflow_entries").insert({
-    entry_date: new Date().toISOString().slice(0, 10),
+    entry_date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }),
     direction: "out",
     amount,
     kind: "opex",

@@ -5,10 +5,11 @@ import { OnlineHistoryClient } from "./online-history-client";
 export const dynamic = "force-dynamic";
 
 export default async function OnlineHistoryPage() {
-  // Default: 30 hari terakhir
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
-  const sinceIso = since.toISOString();
+  // Default: 30 hari terakhir (WIB)
+  const todayWib = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  const sinceDate = new Date(`${todayWib}T00:00:00+07:00`);
+  sinceDate.setDate(sinceDate.getDate() - 30);
+  const sinceIso = sinceDate.toISOString();
   const nowIso = new Date().toISOString();
 
   const [orders, platformStats] = await Promise.all([
