@@ -1,37 +1,40 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Banknote, QrCode, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  calcChange,
-  isPaymentSufficient,
-  quickNominals,
-} from "@/lib/domain/payment"
+import { useState } from "react";
+import { Banknote, QrCode, X, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { calcChange, isPaymentSufficient, quickNominals } from "@/lib/domain/payment";
 
 interface Props {
-  total: number
-  loading: boolean
-  qrisImageUrl?: string
-  onConfirm: (method: "cash" | "qris", paid: number, change: number) => void
-  onClose: () => void
+  total: number;
+  loading: boolean;
+  qrisImageUrl?: string;
+  onConfirm: (
+    method: "cash" | "qris",
+    paid: number,
+    change: number,
+    customerPhone?: string
+  ) => void;
+  onClose: () => void;
 }
 
 export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose }: Props) {
-  const [method, setMethod] = useState<"cash" | "qris">("cash")
-  const [paid, setPaid] = useState<number>(0)
+  const [method, setMethod] = useState<"cash" | "qris">("cash");
+  const [paid, setPaid] = useState<number>(0);
+  const [customerPhone, setCustomerPhone] = useState("");
 
-  const nominals = quickNominals(total)
-  const change = calcChange(total, paid)
-  const cashOk = method === "cash" ? isPaymentSufficient(total, paid) : true
+  const nominals = quickNominals(total);
+  const change = calcChange(total, paid);
+  const cashOk = method === "cash" ? isPaymentSufficient(total, paid) : true;
 
   const handleConfirm = () => {
+    const phone = customerPhone.trim() || undefined;
     if (method === "cash") {
-      onConfirm("cash", paid, change)
+      onConfirm("cash", paid, change, phone);
     } else {
-      onConfirm("qris", total, 0)
+      onConfirm("qris", total, 0, phone);
     }
-  }
+  };
 
   return (
     <div
@@ -51,9 +54,7 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
 
         <div className="mb-4 rounded-xl bg-surface p-4 text-center">
           <div className="text-sm text-ink-soft">Total</div>
-          <div className="text-3xl font-bold text-brand">
-            Rp {total.toLocaleString("id-ID")}
-          </div>
+          <div className="text-3xl font-bold text-brand">Rp {total.toLocaleString("id-ID")}</div>
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-2">
@@ -91,23 +92,43 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
               ))}
             </div>
             <div>
-              <label className="mb-1 block text-sm text-ink-soft">
-                Uang diterima
-              </label>
-              <input
-                type="number"
-                value={paid || ""}
-                onChange={(e) => setPaid(Number(e.target.value))}
-                className="w-full rounded-lg border border-hairline px-3 py-2 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
-                placeholder="0"
-              />
+              <label className="mb-1 block text-sm text-ink-soft">Uang diterima</label>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPaid(Math.max(0, paid - 1000))}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-hairline text-base text-ink-soft transition hover:bg-surface active:scale-90"
+                  aria-label="Kurangi 1.000"
+                >
+                  ▼
+                </button>
+                <input
+                  type="number"
+                  value={paid || ""}
+                  onChange={(e) => setPaid(Number(e.target.value))}
+                  className="flex-1 rounded-lg border border-hairline px-3 py-2 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+                  placeholder="0"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPaid(paid + 1000)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-hairline text-base text-ink-soft transition hover:bg-surface active:scale-90"
+                  aria-label="Tambah 1.000"
+                >
+                  ▲
+                </button>
+              </div>
             </div>
-            <div className="flex justify-between rounded-lg bg-surface px-3 py-2">
-              <span className="text-ink-soft">Kembalian</span>
-              <span className="font-bold text-ink">
-                Rp {change.toLocaleString("id-ID")}
-              </span>
-            </div>
+
+            {/* Kembalian — highlight besar di tengah */}
+            {cashOk && (
+              <div className="rounded-xl bg-tint-green px-4 py-3 text-center">
+                <div className="text-xs font-medium text-success">Kembalian</div>
+                <div className="text-3xl font-bold tracking-tight text-success">
+                  Rp {change.toLocaleString("id-ID")}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -127,8 +148,7 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
               </div>
             ) : (
               <p className="rounded-lg bg-surface px-3 py-3 text-center text-sm text-ink-soft">
-                Tunjukkan QRIS ke pelanggan. Setelah pembayaran diterima, klik
-                konfirmasi.
+                Tunjukkan QRIS ke pelanggan. Setelah pembayaran diterima, klik konfirmasi.
                 <br />
                 <span className="text-xs text-ink-faint">
                   (Unggah gambar QRIS di Pengaturan → Online & QRIS)
@@ -137,6 +157,22 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
             )}
           </div>
         )}
+
+        {/* Input nomor WA pelanggan — opsional */}
+        <div className="mb-4">
+          <label className="mb-1 flex items-center gap-1.5 text-sm text-ink-soft">
+            <MessageCircle size={14} />
+            No. WA Pelanggan
+            <span className="text-xs text-ink-faint">(opsional, untuk kirim struk)</span>
+          </label>
+          <input
+            type="tel"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            className="w-full rounded-lg border border-hairline px-3 py-2 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+            placeholder="08xxxxxxxxxx"
+          />
+        </div>
 
         <Button
           variant="primary"
@@ -150,5 +186,5 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
         </Button>
       </div>
     </div>
-  )
+  );
 }
