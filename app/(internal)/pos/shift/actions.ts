@@ -65,6 +65,8 @@ export async function closeShift(payload: {
   const s = (summary ?? {}) as {
     cashSales?: number;
     qrisTotal?: number;
+    transferTotal?: number;
+    otherTotal?: number;
     openingBalance?: number;
     closingBalance?: number;
     cashDiff?: number;
@@ -72,6 +74,8 @@ export async function closeShift(payload: {
   await sendShiftReport(supabase, payload.shiftId, {
     cashSales: Number(s.cashSales ?? 0),
     qrisTotal: Number(s.qrisTotal ?? 0),
+    transferTotal: Number(s.transferTotal ?? 0),
+    otherTotal: Number(s.otherTotal ?? 0),
     openingBalance: Number(s.openingBalance ?? 0),
     closingBalance: Number(s.closingBalance ?? 0),
     cashDiff: Number(s.cashDiff ?? 0),
@@ -89,6 +93,8 @@ async function sendShiftReport(
   totals: {
     cashSales: number;
     qrisTotal: number;
+    transferTotal: number;
+    otherTotal: number;
     openingBalance: number;
     closingBalance: number;
     cashDiff: number;
@@ -141,6 +147,8 @@ async function sendShiftReport(
       item,
       tunai: totals.cashSales,
       qris: totals.qrisTotal,
+      transfer: totals.transferTotal,
+      lainnya: totals.otherTotal,
       kasAwal: totals.openingBalance,
       kasAkhir: totals.closingBalance,
       selisih: totals.cashDiff,
@@ -179,17 +187,22 @@ export async function cashOut(shiftId: string, amount: number, reason: string) {
   });
   if (error) return { ok: false as const, error: error.message };
 
-  await supabase.from("cashflow_entries").insert({
+  // Catat ke ledger keuangan (best-effort — tidak menggagalkan cash-out jika error)
+  const { error: cfError } = await supabase.from("cashflow_entries").insert({
     entry_date: new Date().toISOString().slice(0, 10),
     direction: "out",
     amount,
     kind: "opex",
     source: "drawer",
     ref_id: shiftId,
-    note: reason,
+    note: reason || null,
     created_by: user.id,
   });
+  if (cfError) {
+    console.error("[cashOut] gagal insert cashflow_entries:", cfError.message);
+  }
 
   revalidatePath("/pos/shift");
+  revalidatePath("/finance");
   return { ok: true as const };
 }

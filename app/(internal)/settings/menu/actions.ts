@@ -32,7 +32,15 @@ export async function createProduct(formData: FormData) {
   });
   if (error) return { ok: false as const, error: error.message };
 
+  // Pastikan kategori ada di tabel categories agar urutan sort bisa dikelola
+  if (input.category) {
+    await supabase
+      .from("categories")
+      .upsert({ name: input.category }, { onConflict: "name", ignoreDuplicates: true });
+  }
+
   revalidatePath("/settings/menu");
+  revalidatePath("/pos");
   return { ok: true as const };
 }
 
@@ -58,8 +66,16 @@ export async function updateProduct(id: string, formData: FormData) {
     .eq("id", id);
   if (error) return { ok: false as const, error: error.message };
 
+  // Pastikan kategori ada di tabel categories
+  if (input.category) {
+    await supabase
+      .from("categories")
+      .upsert({ name: input.category }, { onConflict: "name", ignoreDuplicates: true });
+  }
+
   revalidatePath("/settings/menu");
   revalidatePath(`/settings/menu/${id}`);
+  revalidatePath("/pos");
   return { ok: true as const };
 }
 

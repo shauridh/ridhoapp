@@ -34,6 +34,7 @@ interface Props {
   enableDiscount?: boolean;
   enableReprint?: boolean;
   enableTableNumber?: boolean;
+  categoryOrder?: string[];
 }
 
 interface PaymentOption {
@@ -56,6 +57,7 @@ export function PosClient({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   enableReprint = true,
   enableTableNumber = false,
+  categoryOrder = [],
 }: Props) {
   // ── Display preferences (persisted per device) ───────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -177,7 +179,13 @@ export function PosClient({
   }, []);
 
   // ── Custom hooks ──────────────────────────────────────────────────────────
-  const { products, loading: productsLoading, variants, bestSellerIds } = useProducts();
+  const {
+    products,
+    loading: productsLoading,
+    variants,
+    bestSellerIds,
+    outOfStockIds,
+  } = useProducts();
   const online = useOnlineOrders();
   const {
     cart,
@@ -216,6 +224,8 @@ export function PosClient({
             sort={sort}
             onSortChange={handleSortChange}
             bestSellerIds={bestSellerIds}
+            outOfStockIds={outOfStockIds}
+            categoryOrder={categoryOrder}
           />
         </div>
 

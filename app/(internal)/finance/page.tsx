@@ -76,7 +76,45 @@ export default async function FinancePage() {
       <KeuanganManager akun={akun} opex={opex} piutang={piutang} />
 
       <div>
-        <h2 className="mb-2 font-medium text-ink">Arus Kas Bulan Ini</h2>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-medium text-ink">Arus Kas Bulan Ini</h2>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-success" />
+              <span className="text-ink-soft">Masuk</span>
+              <span className="font-semibold text-success">
+                Rp{" "}
+                {entries
+                  .reduce((s, e) => (e.direction === "in" ? s + e.amount : s), 0)
+                  .toLocaleString("id-ID")}
+              </span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-danger" />
+              <span className="text-ink-soft">Keluar</span>
+              <span className="font-semibold text-danger">
+                Rp{" "}
+                {entries
+                  .reduce((s, e) => (e.direction === "out" ? s + e.amount : s), 0)
+                  .toLocaleString("id-ID")}
+              </span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="text-ink-soft">Net</span>
+              {(() => {
+                const net = entries.reduce(
+                  (s, e) => (e.direction === "in" ? s + e.amount : s - e.amount),
+                  0
+                );
+                return (
+                  <span className={`font-bold ${net >= 0 ? "text-success" : "text-danger"}`}>
+                    {net >= 0 ? "+" : "-"}Rp {Math.abs(net).toLocaleString("id-ID")}
+                  </span>
+                );
+              })()}
+            </span>
+          </div>
+        </div>
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>

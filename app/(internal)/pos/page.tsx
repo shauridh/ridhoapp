@@ -1,5 +1,6 @@
 import { getCurrentOpenShift, getLastClosedShiftBalance } from "@/lib/data/shifts";
 import { createClient } from "@/lib/supabase/server";
+import { listCategories } from "@/lib/data/categories";
 import { OpenShiftGate } from "./open-shift-gate";
 import { PosClient } from "./pos-client";
 
@@ -14,22 +15,25 @@ export default async function PosPage() {
   }
 
   const supabase = await createClient();
-  const { data: settingsRows } = await supabase
-    .from("app_settings")
-    .select("key, value")
-    .in("key", [
-      "store_name",
-      "store_address",
-      "store_phone",
-      "qris_image",
-      "receipt_footer",
-      "enable_discount",
-      "enable_reprint",
-      "extra_payment_methods",
-      "enable_table_number",
-    ]);
+  const [{ data: settingsRows }, categories] = await Promise.all([
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", [
+        "store_name",
+        "store_address",
+        "store_phone",
+        "qris_image",
+        "receipt_footer",
+        "enable_discount",
+        "enable_reprint",
+        "enable_table_number",
+      ]),
+    listCategories(),
+  ]);
 
   const settingsMap = new Map((settingsRows ?? []).map((r) => [r.key, r.value]));
+  const categoryOrder = categories.map((c) => c.name);
 
   return (
     <PosClient
@@ -43,6 +47,7 @@ export default async function PosPage() {
       enableDiscount={settingsMap.get("enable_discount") === "true"}
       enableReprint={settingsMap.get("enable_reprint") !== "false"}
       enableTableNumber={settingsMap.get("enable_table_number") === "true"}
+      categoryOrder={categoryOrder}
     />
   );
 }

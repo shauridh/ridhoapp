@@ -35,6 +35,9 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
+  const [transferTotal, setTransferTotal] = useState(0);
+  const [otherTotal, setOtherTotal] = useState(0);
+
   const load = () => {
     const supabase = createClient();
     supabase
@@ -43,14 +46,21 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
       .eq("shift_id", shiftId)
       .eq("status", "completed")
       .then(({ data }) => {
-        let cash = 0;
-        let qris = 0;
+        let cash = 0,
+          qris = 0,
+          transfer = 0,
+          other = 0;
         for (const o of data ?? []) {
-          if (o.payment_method === "cash") cash += Number(o.total);
-          if (o.payment_method === "qris") qris += Number(o.total);
+          const m = (o.payment_method ?? "").toLowerCase();
+          if (m.includes("tunai") || m === "cash") cash += Number(o.total);
+          else if (m.includes("qris")) qris += Number(o.total);
+          else if (m.includes("transfer")) transfer += Number(o.total);
+          else other += Number(o.total);
         }
         setCashSales(cash);
         setQrisTotal(qris);
+        setTransferTotal(transfer);
+        setOtherTotal(other);
       });
     supabase
       .from("cash_drawer_movements")
@@ -144,6 +154,8 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
               <Row label="Saldo Awal" value={rupiah(openingBalance)} />
               <Row label="Tunai Masuk" value={rupiah(cashSales)} />
               <Row label="QRIS" value={rupiah(qrisTotal)} />
+              {transferTotal > 0 && <Row label="Transfer" value={rupiah(transferTotal)} />}
+              {otherTotal > 0 && <Row label="Metode Lain" value={rupiah(otherTotal)} />}
               <Row label="Kas Keluar" value={`− ${rupiah(cashOutTotal)}`} negative />
             </dl>
             {/* Kas Seharusnya — block besar agar mudah dipindai */}
@@ -236,7 +248,16 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
                 type="number"
                 label="Uang Dihitung (fisik)"
                 value={counted}
-                onChange={(e) => setCounted(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCounted(val);
+                  // Auto-isi penarikan = counted - 350k (jika counted > 350k)
+                  if (val && Number(val) > MIN_DRAWER_BALANCE) {
+                    setWithdrawal(String(Number(val) - MIN_DRAWER_BALANCE));
+                  } else {
+                    setWithdrawal("0");
+                  }
+                }}
                 inputMode="numeric"
                 required
               />

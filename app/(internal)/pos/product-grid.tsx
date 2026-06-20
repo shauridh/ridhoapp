@@ -33,6 +33,8 @@ interface Props {
   sort: SortSetting;
   onSortChange: (s: SortSetting) => void;
   bestSellerIds: string[];
+  outOfStockIds?: Set<string>;
+  categoryOrder?: string[];
 }
 
 export function ProductGrid({
@@ -49,8 +51,17 @@ export function ProductGrid({
   sort,
   onSortChange,
   bestSellerIds,
+  outOfStockIds = new Set(),
+  categoryOrder = [],
 }: Props) {
-  const categories = useMemo(() => extractCategories(products), [products]);
+  const categories = useMemo(() => {
+    const fromProducts = extractCategories(products); // set of active categories
+    if (categoryOrder.length === 0) return fromProducts;
+    // Urutkan berdasarkan categoryOrder dari server, sisanya append di belakang
+    const ordered = categoryOrder.filter((c) => fromProducts.includes(c));
+    const rest = fromProducts.filter((c) => !categoryOrder.includes(c));
+    return [...ordered, ...rest];
+  }, [products, categoryOrder]);
   const visible = useMemo(
     () => sortProducts(filterProducts(products, query, category), sort, bestSellerIds),
     [products, query, category, sort, bestSellerIds]
@@ -116,17 +127,31 @@ export function ProductGrid({
           visible.map((p) => {
             const qty = cartQty[p.id] ?? 0;
             const inCart = qty > 0;
+            const isOos = outOfStockIds.has(p.id);
             return (
               <button
                 key={p.id}
                 onClick={() => onSelect(p)}
-                aria-label={`${p.name} — Rp ${p.base_price.toLocaleString("id-ID")}${inCart ? `, ${qty} di keranjang` : ""}`}
-                className={`relative overflow-hidden rounded-2xl border text-center shadow-sm transition active:scale-[0.97] hover:shadow-lg ${
-                  inCart ? "border-brand ring-2 ring-brand/20 bg-white" : "border-hairline bg-white"
+                disabled={isOos}
+                aria-label={`${p.name} — Rp ${p.base_price.toLocaleString("id-ID")}${
+                  isOos ? " (stok habis)" : inCart ? `, ${qty} di keranjang` : ""
+                }`}
+                className={`relative overflow-hidden rounded-2xl border text-center shadow-sm transition ${
+                  isOos
+                    ? "cursor-not-allowed border-hairline bg-surface opacity-60"
+                    : inCart
+                      ? "border-brand ring-2 ring-brand/20 bg-white active:scale-[0.97] hover:shadow-lg"
+                      : "border-hairline bg-white active:scale-[0.97] hover:shadow-lg"
                 }`}
               >
+                {/* Badge stok habis */}
+                {isOos && (
+                  <span className="absolute left-0 right-0 top-2 z-10 mx-auto w-fit rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                    Habis
+                  </span>
+                )}
                 {/* Badge qty di keranjang */}
-                {inCart && (
+                {inCart && !isOos && (
                   <span className="absolute right-2 top-2 z-10 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-brand px-1.5 text-sm font-bold text-white shadow">
                     {qty}
                   </span>
@@ -142,12 +167,14 @@ export function ProductGrid({
                     </div>
                   )}
                 </div>
-                {/* Info produk: nama dan harga diperbesar untuk mudah dipindai */}
+                {/* Info produk */}
                 <div className="p-2">
                   <div className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
                     {p.name}
                   </div>
-                  <div className="mt-0.5 text-sm font-bold text-brand">
+                  <div
+                    className={`mt-0.5 text-sm font-bold ${isOos ? "text-ink-soft" : "text-brand"}`}
+                  >
                     Rp {p.base_price.toLocaleString("id-ID")}
                   </div>
                 </div>
