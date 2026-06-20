@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { SettingsSection } from "../settings-section";
 import { KasirForm } from "./kasir-form";
+import { PaymentOptionsManager } from "./payment-options-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,15 @@ export default async function KasirSettingsPage() {
 
   return (
     <SettingsSection title="Fitur Kasir">
-      <KasirForm
-        enableDiscount={map.get("enable_discount") === "true"}
-        enableReprint={map.get("enable_reprint") !== "false"}
-        extraPaymentMethods={extraPaymentMethods}
-        enableTableNumber={map.get("enable_table_number") === "true"}
-      />
+      <div className="space-y-6">
+        <KasirForm
+          enableDiscount={map.get("enable_discount") === "true"}
+          enableReprint={map.get("enable_reprint") !== "false"}
+          extraPaymentMethods={extraPaymentMethods}
+          enableTableNumber={map.get("enable_table_number") === "true"}
+        />
+        <PaymentOptionsManager />
+      </div>
     </SettingsSection>
   );
 }

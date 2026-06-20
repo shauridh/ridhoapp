@@ -106,6 +106,8 @@ export async function addManualOnlineOrder(formData: FormData) {
       return { name: line, qty: 1, harga: 0 };
     });
 
+  const paymentMethod = String(formData.get("payment_method") ?? "").trim() || null;
+
   if (!nama) return { ok: false as const, error: "Nama pelanggan wajib diisi" };
   if (itemsRaw.length === 0) return { ok: false as const, error: "Item pesanan wajib diisi" };
 
@@ -120,10 +122,64 @@ export async function addManualOnlineOrder(formData: FormData) {
     total: totalRaw,
     status: "pending",
     platform,
+    payment_method: paymentMethod,
     confirm_token: crypto.randomUUID(),
   });
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/pos");
+  return { ok: true as const };
+}
+
+// CRUD opsi pembayaran
+export async function listPaymentOptions() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("payment_options").select("*").order("sort_order");
+  return data ?? [];
+}
+
+export async function addPaymentOption(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { ok: false as const, error: "Nama wajib diisi" };
+
+  const { error } = await supabase.from("payment_options").insert({ name });
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/pos");
+  revalidatePath("/settings/kasir");
+  return { ok: true as const };
+}
+
+export async function togglePaymentOption(id: string, isActive: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+
+  const { error } = await supabase
+    .from("payment_options")
+    .update({ is_active: isActive })
+    .eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/settings/kasir");
+  return { ok: true as const };
+}
+
+export async function deletePaymentOption(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+
+  const { error } = await supabase.from("payment_options").delete().eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/settings/kasir");
   return { ok: true as const };
 }

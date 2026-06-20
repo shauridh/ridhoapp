@@ -22,6 +22,7 @@ export interface OnlineOrder {
   total: number;
   status: string;
   platform: OnlinePlatform;
+  payment_method: string | null;
   location_url: string | null;
   created_at: string;
 }
