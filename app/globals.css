@@ -35,9 +35,17 @@ body {
     visibility: visible;
   }
   .receipt-print {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     width: 100%;
+    font-family: monospace;
+    font-size: 10pt;
+    line-height: 1.4;
+    color: black;
+    background: white;
+  }
+  .no-print {
+    display: none !important;
   }
 }

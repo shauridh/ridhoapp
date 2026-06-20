@@ -1,33 +1,35 @@
-import {
-  getCurrentOpenShift,
-  getLastClosedShiftBalance,
-} from "@/lib/data/shifts"
-import { createClient } from "@/lib/supabase/server"
-import { OpenShiftGate } from "./open-shift-gate"
-import { PosClient } from "./pos-client"
+import { getCurrentOpenShift, getLastClosedShiftBalance } from "@/lib/data/shifts";
+import { createClient } from "@/lib/supabase/server";
+import { OpenShiftGate } from "./open-shift-gate";
+import { PosClient } from "./pos-client";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export default async function PosPage() {
-  const openShift = await getCurrentOpenShift()
+  const openShift = await getCurrentOpenShift();
 
   if (!openShift) {
-    const lastBalance = await getLastClosedShiftBalance()
-    return <OpenShiftGate lastBalance={lastBalance} />
+    const lastBalance = await getLastClosedShiftBalance();
+    return <OpenShiftGate lastBalance={lastBalance} />;
   }
 
-  const supabase = await createClient()
-  const { data: qrisRow } = await supabase
+  const supabase = await createClient();
+  const { data: settingsRows } = await supabase
     .from("app_settings")
-    .select("value")
-    .eq("key", "qris_image")
-    .maybeSingle()
+    .select("key, value")
+    .in("key", ["store_name", "store_address", "store_phone", "qris_image", "receipt_footer"]);
+
+  const settingsMap = new Map((settingsRows ?? []).map((r) => [r.key, r.value]));
 
   return (
     <PosClient
       shiftId={openShift.id}
       openingBalance={Number(openShift.opening_balance)}
-      qrisImageUrl={qrisRow?.value || undefined}
+      qrisImageUrl={settingsMap.get("qris_image") || undefined}
+      storeName={settingsMap.get("store_name") || "Sabana POS"}
+      storeAddress={settingsMap.get("store_address") || undefined}
+      storePhone={settingsMap.get("store_phone") || undefined}
+      receiptFooter={settingsMap.get("receipt_footer") || undefined}
     />
-  )
+  );
 }

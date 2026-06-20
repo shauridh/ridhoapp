@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bookmark, Bell, ShoppingCart } from "lucide-react";
+import { ShoppingCart, Bookmark, Bell } from "lucide-react";
 import type { ProductRow } from "@/lib/data/products";
 import type { VariantRow } from "@/lib/data/products";
 import { createClient } from "@/lib/supabase/client";
@@ -11,7 +11,7 @@ import type { GridSetting } from "@/lib/domain/grid";
 import { useToast } from "@/components/ui/toast";
 import { useDialog } from "@/components/ui/dialog";
 import { SlideOver } from "@/components/ui/slide-over";
-import { checkout } from "./actions";
+import { checkout, sendReceiptWa } from "./actions";
 import { holdOrder } from "./held-actions";
 import { ProductGrid } from "./product-grid";
 import { CartView } from "./cart";
@@ -22,6 +22,7 @@ import { OnlineOrders } from "./online-orders";
 import { HeldOrders } from "./held-orders";
 import { ShiftPanel } from "./shift-panel";
 import { useOnlineOrders } from "./use-online-orders";
+import { PosActionBar } from "./pos-action-bar";
 
 type Panel = "held" | "online" | "shift" | null;
 
@@ -33,15 +34,29 @@ interface ReceiptState {
   items: { name: string; qty: number; price: number }[];
   paid?: number;
   change?: number;
+  order_number?: number; // nomor urut harian
+  customerPhone?: string; // untuk auto-trigger WA dari receipt modal
 }
 
 interface Props {
   shiftId: string;
   openingBalance: number;
   qrisImageUrl?: string;
+  storeName?: string;
+  storeAddress?: string;
+  storePhone?: string;
+  receiptFooter?: string;
 }
 
-export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
+export function PosClient({
+  shiftId,
+  openingBalance,
+  qrisImageUrl,
+  storeName,
+  storeAddress,
+  storePhone,
+  receiptFooter,
+}: Props) {
   const [cart, setCart] = useState<Cart>(createCart());
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -65,6 +80,23 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("pos.showPrint") === "true";
   });
+
+  const handleTogglePrint = () => {
+    setShowPrint((prev) => {
+      const next = !prev;
+      localStorage.setItem("pos.showPrint", String(next));
+      return next;
+    });
+  };
+
+  const handleToggleSearch = () => {
+    setShowSearch((prev) => {
+      const next = !prev;
+      localStorage.setItem("pos.showSearch", String(next));
+      return next;
+    });
+  };
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -187,7 +219,12 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
     setCart((prev) => (prev.length === 0 ? saved : [...prev, ...saved]));
   };
 
-  const handleCheckout = async (method: "cash" | "qris", paid: number, change: number) => {
+  const handleCheckout = async (
+    method: "cash" | "qris",
+    paid: number,
+    change: number,
+    customerPhone?: string
+  ) => {
     if (cart.length === 0) return;
     setLoading(true);
     try {
@@ -208,18 +245,37 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
       });
       if (result.ok) {
         toast.show("Transaksi berhasil", "success");
+        const receiptItems = cart.map((item) => ({
+          name: item.name,
+          qty: item.qty,
+          price: item.unitPrice + item.variants.reduce((s, v) => s + v.priceDelta, 0),
+        }));
         setReceipt({
           ...result.order,
           paid,
           change,
-          items: cart.map((item) => ({
-            name: item.name,
-            qty: item.qty,
-            price: item.unitPrice + item.variants.reduce((s, v) => s + v.priceDelta, 0),
-          })),
+          items: receiptItems,
+          customerPhone: customerPhone || undefined,
         });
         setCart(createCart());
         setShowPayment(false);
+
+        // Kirim struk WA via server action (Satori PNG, tidak ada CDN dependency)
+        if (customerPhone) {
+          sendReceiptWa(customerPhone, {
+            orderId: result.order.id,
+            createdAt: result.order.created_at,
+            items: receiptItems,
+            total: result.order.total,
+            paymentMethod: method,
+            paid,
+            change,
+            storeName,
+            storeAddress,
+            storePhone,
+            receiptFooter,
+          }).catch(() => {}); // best-effort, abaikan error
+        }
       } else {
         toast.show(result.error, "error");
       }
@@ -230,17 +286,17 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
-      {/* Floating held-orders indicator — visible when there are parked orders */}
-      {heldCount > 0 && panel !== "held" && (
-        <button
-          onClick={() => setPanel("held")}
-          className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-amber-600 active:scale-95 lg:bottom-8"
-          aria-label={`Buka ${heldCount} pesanan tersimpan`}
-        >
-          <Bookmark size={16} />
-          {heldCount} Tersimpan
-        </button>
-      )}
+      {/* Action bar: shortcut satu tap ke semua fitur kasir */}
+      <PosActionBar
+        heldCount={heldCount}
+        onlinePendingCount={online.pendingCount}
+        panel={panel}
+        onOpenPanel={setPanel}
+        showSearch={showSearch}
+        onToggleSearch={handleToggleSearch}
+        showPrint={showPrint}
+        onTogglePrint={handleTogglePrint}
+      />
 
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
@@ -371,6 +427,12 @@ export function PosClient({ shiftId, openingBalance, qrisImageUrl }: Props) {
           paid={receipt.paid}
           change={receipt.change}
           showPrint={showPrint}
+          storeName={storeName}
+          storeAddress={storeAddress}
+          storePhone={storePhone}
+          orderNumber={receipt.order_number}
+          customerPhone={receipt.customerPhone}
+          receiptFooter={receiptFooter}
           onClose={() => setReceipt(null)}
         />
       )}

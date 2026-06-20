@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendWa, sendWaMedia } from "@/lib/wa/getsender";
+import { formatReceiptMessage } from "@/lib/wa/format-receipt";
+import { generateReceiptPng } from "@/lib/wa/receipt-image";
 
 interface CheckoutItem {
   productId: string;
@@ -58,6 +61,92 @@ export async function voidOrder(orderId: string, reason: string) {
   revalidatePath("/pos");
   revalidatePath("/pos/history");
   return { ok: true as const };
+}
+
+interface SendReceiptPayload {
+  orderId: string;
+  createdAt: string;
+  items: { name: string; qty: number; price: number }[];
+  total: number;
+  paymentMethod: string;
+  paid?: number;
+  change?: number;
+  // Store info dikirim dari client agar tidak perlu re-fetch dari DB
+  storeName?: string;
+  storeAddress?: string;
+  storePhone?: string;
+  receiptFooter?: string;
+}
+
+const RECEIPT_BUCKET = "produk-images";
+
+/**
+ * Mengirim struk transaksi ke nomor WhatsApp pelanggan sebagai gambar PNG.
+ * Fallback ke teks jika generate/upload gambar gagal.
+ * Best-effort: tidak melempar error, mengembalikan { ok, error? }.
+ */
+export async function sendReceiptWa(
+  phone: string,
+  receiptData: SendReceiptPayload
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Tidak terautentikasi" };
+
+  const { storeName, storeAddress, storePhone, receiptFooter, ...receiptFields } = receiptData;
+  const storeNameResolved = storeName ?? "Sabana POS";
+
+  // Normalisasi nomor: 08xx → 628xx, +628xx → 628xx
+  const normalized = phone.replace(/^\+/, "").replace(/^0/, "62");
+
+  // ── Coba kirim sebagai gambar PNG via Satori (font lokal, tidak ada CDN) ──
+  try {
+    const pngBuffer = await generateReceiptPng({
+      storeName: storeNameResolved,
+      storeAddress: storeAddress || undefined,
+      storePhone: storePhone || undefined,
+      receiptFooter: receiptFooter || undefined,
+      ...receiptFields,
+    });
+
+    // Upload ke Supabase Storage (file sementara, path unik per transaksi)
+    const filePath = `receipts/${receiptData.orderId}-${Date.now()}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from(RECEIPT_BUCKET)
+      .upload(filePath, pngBuffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from(RECEIPT_BUCKET).getPublicUrl(filePath);
+
+      const result = await sendWaMedia(normalized, urlData.publicUrl);
+
+      // Hapus file setelah terkirim (best-effort, tidak blocking)
+      supabase.storage
+        .from(RECEIPT_BUCKET)
+        .remove([filePath])
+        .catch(() => {});
+
+      if (result.ok) return result;
+      // Jika kirim media gagal, jatuh ke fallback teks di bawah
+    }
+  } catch {
+    // Generate atau upload gagal — lanjut ke fallback teks
+  }
+
+  // ── Fallback: kirim sebagai teks ──
+  const message = formatReceiptMessage({
+    storeName: storeNameResolved,
+    storeAddress: storeAddress || undefined,
+    storePhone: storePhone || undefined,
+    ...receiptFields,
+  });
+  console.log("[sendReceiptWa] falling back to text, phone:", normalized);
+  return sendWa(normalized, message);
 }
 
 // Edit transaksi yang sudah selesai. Mendukung perbaikan total dan metode bayar

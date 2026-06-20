@@ -43,6 +43,16 @@ export async function closeShift(payload: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
 
+  // Validasi minimum kas dalam laci setelah penarikan owner
+  const MIN_DRAWER = 350_000;
+  const closingBalance = payload.countedCash - payload.ownerWithdrawal;
+  if (closingBalance < MIN_DRAWER) {
+    return {
+      ok: false as const,
+      error: `Kas dalam laci setelah penarikan harus minimal Rp ${MIN_DRAWER.toLocaleString("id-ID")}. Sisa saat ini: Rp ${closingBalance.toLocaleString("id-ID")}.`,
+    };
+  }
+
   // RPC transaksional: hitung kas + tutup shift + catat pemasukan, atomik.
   const { data: summary, error } = await supabase.rpc("close_shift", {
     p_shift_id: payload.shiftId,
