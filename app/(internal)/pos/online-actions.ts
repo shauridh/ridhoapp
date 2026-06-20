@@ -183,3 +183,20 @@ export async function deletePaymentOption(id: string) {
   revalidatePath("/settings/kasir");
   return { ok: true as const };
 }
+
+export async function setPaymentOptionOffline(id: string, isOffline: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+
+  const { error } = await supabase
+    .from("payment_options")
+    .update({ is_offline: isOffline })
+    .eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/pos");
+  revalidatePath("/settings/kasir");
+  return { ok: true as const };
+}

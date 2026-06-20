@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Banknote,
-  QrCode,
-  X,
-  MessageCircle,
-  ArrowLeftRight,
-  CreditCard,
-  Percent,
-  Minus,
-} from "lucide-react";
+import { Banknote, QrCode, X, MessageCircle, CreditCard, Percent, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calcChange, isPaymentSufficient, quickNominals } from "@/lib/domain/payment";
 
-type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
+type PaymentMethod = string;
+
+interface PaymentOption {
+  id: string;
+  name: string;
+  is_active: boolean;
+  is_offline: boolean;
+  sort_order: number;
+}
 
 interface Props {
   total: number;
@@ -22,20 +21,10 @@ interface Props {
   qrisImageUrl?: string;
   enableDiscount?: boolean;
   enableTableNumber?: boolean;
-  extraPaymentMethods?: ("transfer" | "debit")[];
+  offlinePaymentOptions?: PaymentOption[];
   onConfirm: (method: PaymentMethod, paid: number, change: number, customerPhone?: string) => void;
   onClose: () => void;
 }
-
-const METHOD_CONFIG: Record<
-  PaymentMethod,
-  { label: string; icon: import("lucide-react").LucideIcon }
-> = {
-  cash: { label: "Tunai", icon: Banknote },
-  qris: { label: "QRIS", icon: QrCode },
-  transfer: { label: "Transfer", icon: ArrowLeftRight },
-  debit: { label: "Kartu Debit", icon: CreditCard },
-};
 
 export function PaymentModal({
   total,
@@ -43,12 +32,14 @@ export function PaymentModal({
   qrisImageUrl,
   enableDiscount = false,
   enableTableNumber = false,
-  extraPaymentMethods = [],
+  offlinePaymentOptions,
   onConfirm,
   onClose,
 }: Props) {
-  const allMethods: PaymentMethod[] = ["cash", "qris", ...extraPaymentMethods];
-  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const allMethods: string[] = offlinePaymentOptions
+    ?.filter((o) => o.is_active)
+    .map((o) => o.name) ?? ["Tunai", "QRIS"];
+  const [method, setMethod] = useState<string>(allMethods[0] ?? "Tunai");
   const [paid, setPaid] = useState<number>(0);
   const [customerPhone, setCustomerPhone] = useState("");
   const [tableNumber, setTableNumber] = useState("");
@@ -64,12 +55,14 @@ export function PaymentModal({
 
   const nominals = quickNominals(finalTotal);
   const change = calcChange(finalTotal, paid);
-  const cashOk = method === "cash" ? isPaymentSufficient(finalTotal, paid) : true;
+
+  const isCashMethod = method.toLowerCase().includes("tunai") || method.toLowerCase() === "cash";
+  const cashOk = isCashMethod ? isPaymentSufficient(finalTotal, paid) : true;
 
   const handleConfirm = () => {
     const phone = customerPhone.trim() || undefined;
-    const paidAmt = method === "cash" ? paid : finalTotal;
-    const changeAmt = method === "cash" ? change : 0;
+    const paidAmt = isCashMethod ? paid : finalTotal;
+    const changeAmt = isCashMethod ? change : 0;
     onConfirm(method, paidAmt, changeAmt, phone);
   };
 
@@ -161,21 +154,29 @@ export function PaymentModal({
         {/* Metode bayar */}
         <div className={`mb-4 grid gap-2 grid-cols-${Math.min(allMethods.length, 4)}`}>
           {allMethods.map((m) => {
-            const cfg = METHOD_CONFIG[m];
+            const methodLower = m.toLowerCase();
+            const Icon =
+              methodLower.includes("tunai") || methodLower.includes("cash")
+                ? Banknote
+                : methodLower.includes("qris")
+                  ? QrCode
+                  : CreditCard;
+            const isSelected = method === m;
+            const isCashLike = methodLower.includes("tunai") || methodLower.includes("cash");
             return (
               <Button
                 key={m}
-                variant={method === m ? (m === "cash" ? "success" : "secondary") : "ghost"}
-                icon={cfg.icon}
+                variant={isSelected ? (isCashLike ? "success" : "secondary") : "ghost"}
+                icon={Icon}
                 onClick={() => setMethod(m)}
               >
-                {cfg.label}
+                {m}
               </Button>
             );
           })}
         </div>
 
-        {method === "cash" && (
+        {isCashMethod && (
           <div className="mb-4 space-y-3">
             <div className="grid grid-cols-3 gap-2">
               {nominals.map((n) => (
@@ -233,17 +234,7 @@ export function PaymentModal({
           </div>
         )}
 
-        {(method === "transfer" || method === "debit") && (
-          <div className="mb-4 rounded-xl bg-surface px-4 py-3 text-center">
-            <p className="text-sm text-ink-soft">
-              {method === "transfer"
-                ? "Konfirmasi setelah transfer diterima."
-                : "Gesek kartu, konfirmasi setelah approved."}
-            </p>
-          </div>
-        )}
-
-        {method === "qris" && (
+        {method.toLowerCase().includes("qris") && (
           <div className="mb-4 space-y-3">
             {qrisImageUrl ? (
               <div className="flex flex-col items-center gap-2">
@@ -266,6 +257,18 @@ export function PaymentModal({
                 </span>
               </p>
             )}
+          </div>
+        )}
+
+        {method.toLowerCase().includes("transfer") && !method.toLowerCase().includes("qris") && (
+          <div className="mb-4 rounded-xl bg-surface px-4 py-3 text-center">
+            <p className="text-sm text-ink-soft">Konfirmasi setelah transfer diterima.</p>
+          </div>
+        )}
+
+        {method.toLowerCase().includes("debit") && !method.toLowerCase().includes("kredit") && (
+          <div className="mb-4 rounded-xl bg-surface px-4 py-3 text-center">
+            <p className="text-sm text-ink-soft">Gesek kartu, konfirmasi setelah approved.</p>
           </div>
         )}
 
@@ -293,7 +296,7 @@ export function PaymentModal({
           onClick={handleConfirm}
           className="w-full"
         >
-          {method === "cash" && !cashOk ? "Uang kurang" : "Konfirmasi Bayar"}
+          {isCashMethod && !cashOk ? "Uang kurang" : "Konfirmasi Bayar"}
         </Button>
       </div>
     </div>

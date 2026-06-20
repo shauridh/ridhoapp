@@ -44,9 +44,6 @@ BEGIN
   IF p_items IS NULL OR jsonb_array_length(p_items) = 0 THEN
     RAISE EXCEPTION 'Keranjang kosong';
   END IF;
-  IF p_payment_method NOT IN ('cash','qris','transfer','debit') THEN
-    RAISE EXCEPTION 'Metode bayar tidak valid: %', p_payment_method;
-  END IF;
 
   SELECT id INTO v_shift FROM public.shifts WHERE status = 'open' LIMIT 1;
   IF v_shift IS NULL THEN

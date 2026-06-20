@@ -21,7 +21,7 @@ import { useProducts } from "./hooks/use-products";
 import { useCart } from "./hooks/use-cart";
 
 type Panel = "held" | "online" | "shift" | null;
-type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
+type PaymentMethod = string;
 
 interface Props {
   shiftId: string;
@@ -34,7 +34,14 @@ interface Props {
   enableDiscount?: boolean;
   enableReprint?: boolean;
   enableTableNumber?: boolean;
-  extraPaymentMethods?: ("transfer" | "debit")[];
+}
+
+interface PaymentOption {
+  id: string;
+  name: string;
+  is_active: boolean;
+  is_offline: boolean;
+  sort_order: number;
 }
 
 export function PosClient({
@@ -49,7 +56,6 @@ export function PosClient({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   enableReprint = true,
   enableTableNumber = false,
-  extraPaymentMethods = [],
 }: Props) {
   // ── Display preferences (persisted per device) ───────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -155,6 +161,19 @@ export function PosClient({
     return () => {
       supabase.removeChannel(channel);
     };
+  }, []);
+
+  const [offlinePaymentOptions, setOfflinePaymentOptions] = useState<PaymentOption[]>([]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("payment_options")
+      .select("*")
+      .eq("is_offline", true)
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => setOfflinePaymentOptions(data ?? []));
   }, []);
 
   // ── Custom hooks ──────────────────────────────────────────────────────────
@@ -273,7 +292,7 @@ export function PosClient({
           onClose={() => setShowPayment(false)}
           enableDiscount={enableDiscount}
           enableTableNumber={enableTableNumber}
-          extraPaymentMethods={extraPaymentMethods}
+          offlinePaymentOptions={offlinePaymentOptions}
         />
       )}
 

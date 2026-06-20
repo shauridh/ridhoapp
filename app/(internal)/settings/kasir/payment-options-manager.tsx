@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, ToggleLeft, ToggleRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -10,12 +10,14 @@ import {
   addPaymentOption,
   togglePaymentOption,
   deletePaymentOption,
+  setPaymentOptionOffline,
 } from "@/app/(internal)/pos/online-actions";
 
 interface PaymentOption {
   id: string;
   name: string;
   is_active: boolean;
+  is_offline: boolean;
   sort_order: number;
 }
 
@@ -51,21 +53,32 @@ export function PaymentOptionsManager() {
     });
   };
 
+  const handleToggleOffline = (id: string, isOffline: boolean) => {
+    startTransition(() => {
+      run(() => setPaymentOptionOffline(id, isOffline), "Diperbarui");
+    });
+  };
+
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-semibold text-ink">Opsi Metode Pembayaran Online</h2>
+        <h2 className="font-semibold text-ink">Metode Pembayaran</h2>
         <p className="text-xs text-ink-soft">
-          Digunakan di form input order GoFood/GrabFood/ShopeeFood. Aktifkan yang ingin ditampilkan.
+          Kelola opsi pembayaran untuk POS (offline) dan order online. Aktifkan serta pilih tipe
+          sesuai kebutuhan.
         </p>
       </div>
 
-      {/* Form tambah */}
+      <div className="flex gap-2 text-xs">
+        <span className="rounded-full bg-brand/10 px-2 py-0.5 font-semibold text-brand">POS</span>
+        <span className="rounded-full bg-accent px-2 py-0.5 font-semibold text-ink">Online</span>
+      </div>
+
       <form onSubmit={handleAdd} className="flex gap-2">
         <input
           name="name"
           required
-          placeholder="mis. Transfer BCA, Dana, COD"
+          placeholder="mis. Tunai, QRIS, Transfer, Kartu Debit, OVO"
           className="flex-1 rounded-xl border border-hairline px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
         />
         <Button type="submit" icon={Plus} loading={pending}>
@@ -73,7 +86,6 @@ export function PaymentOptionsManager() {
         </Button>
       </form>
 
-      {/* Daftar opsi */}
       <ul className="divide-y divide-hairline rounded-xl border border-hairline">
         {options.map((o) => (
           <li
@@ -82,8 +94,25 @@ export function PaymentOptionsManager() {
               !o.is_active ? "opacity-50" : ""
             }`}
           >
-            <span className="text-ink">{o.name}</span>
+            <div className="flex items-center gap-2">
+              {o.is_offline && (
+                <span className="rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand">
+                  POS
+                </span>
+              )}
+              <span className="text-ink">{o.name}</span>
+            </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleToggleOffline(o.id, !o.is_offline)}
+                className={`rounded p-1 transition ${
+                  o.is_offline ? "text-brand hover:bg-tint-red" : "text-ink-soft hover:bg-surface"
+                }`}
+                aria-label={o.is_offline ? "Nonaktifkan untuk POS" : "Aktifkan untuk POS"}
+                title={o.is_offline ? "Untuk POS" : "Untuk Online"}
+              >
+                {o.is_offline ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+              </button>
               <button
                 onClick={() =>
                   startTransition(() =>

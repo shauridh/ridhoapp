@@ -10,7 +10,7 @@ import { useDialog } from "@/components/ui/dialog";
 import { holdOrder } from "../held-actions";
 import { checkout, sendReceiptWa } from "../actions";
 
-type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
+type PaymentMethod = string;
 
 interface ReceiptState {
   id: string;

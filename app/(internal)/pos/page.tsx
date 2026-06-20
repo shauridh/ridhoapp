@@ -31,11 +31,6 @@ export default async function PosPage() {
 
   const settingsMap = new Map((settingsRows ?? []).map((r) => [r.key, r.value]));
 
-  const extraPaymentMethods = (settingsMap.get("extra_payment_methods") ?? "")
-    .split(",")
-    .map((s: string) => s.trim())
-    .filter((s: string): s is "transfer" | "debit" => s === "transfer" || s === "debit");
-
   return (
     <PosClient
       shiftId={openShift.id}
@@ -48,7 +43,6 @@ export default async function PosPage() {
       enableDiscount={settingsMap.get("enable_discount") === "true"}
       enableReprint={settingsMap.get("enable_reprint") !== "false"}
       enableTableNumber={settingsMap.get("enable_table_number") === "true"}
-      extraPaymentMethods={extraPaymentMethods}
     />
   );
 }

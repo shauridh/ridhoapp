@@ -14,7 +14,7 @@ interface CheckoutItem {
   variants: { variantId: string; variantName: string; priceDelta: number }[];
 }
 
-type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
+type PaymentMethod = string;
 
 interface CheckoutPayload {
   items: CheckoutItem[];
@@ -156,7 +156,7 @@ export async function sendReceiptWa(
 // aman void + buat ulang karena menyangkut stok.
 export async function editOrder(
   orderId: string,
-  patch: { total?: number; paymentMethod?: "cash" | "qris" },
+  patch: { total?: number; paymentMethod?: string },
   reason: string
 ) {
   const supabase = await createClient();

@@ -90,7 +90,7 @@ export function CategoryChart({ categories, title = "Omzet per Kategori" }: Cate
               position="right"
               fontSize={10}
               fill="#999"
-              formatter={(v: unknown) => `${v}%`}
+              formatter={(v) => `${v}%`}
             />
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
