@@ -57,7 +57,8 @@ const links: NavLink[] = [
 const posShortcuts: SubLink[] = [
   { href: "/pos", label: "Tersimpan", icon: Bookmark, panel: "held" },
   { href: "/pos", label: "Online", icon: Bell, panel: "online" },
-  { href: "/pos/history", label: "Riwayat", icon: History },
+  { href: "/pos/history", label: "Riwayat Kasir", icon: History },
+  { href: "/pos/online-history", label: "Riwayat Online", icon: ShoppingCart },
   { href: "/pos", label: "Kelola Shift", icon: Receipt, panel: "shift" },
 ];
 

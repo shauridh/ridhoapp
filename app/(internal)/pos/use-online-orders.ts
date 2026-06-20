@@ -1,77 +1,75 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { useToast } from "@/components/ui/toast"
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
 import {
   confirmOnlineOrder,
   markOnlinePaid,
   markOnlineDone,
   cancelOnlineOrder,
-} from "./online-actions"
+} from "./online-actions";
+
+export type OnlinePlatform = "web" | "gofood" | "grabfood" | "shopeefood" | "manual";
 
 export interface OnlineOrder {
-  id: string
-  nama: string
-  phone: string
-  alamat: string | null
-  items: { name: string; qty: number; harga: number }[]
-  catatan: string | null
-  total: number
-  status: string
-  location_url: string | null
-  created_at: string
+  id: string;
+  nama: string;
+  phone: string;
+  alamat: string | null;
+  items: { name: string; qty: number; harga: number }[];
+  catatan: string | null;
+  total: number;
+  status: string;
+  platform: OnlinePlatform;
+  location_url: string | null;
+  created_at: string;
 }
 
 // Mengelola data pesanan online + realtime + aksi. Dipakai always-mounted di
 // kasir agar badge tetap hidup walau panel tertutup.
 export function useOnlineOrders() {
-  const [orders, setOrders] = useState<OnlineOrder[]>([])
-  const toast = useToast()
+  const [orders, setOrders] = useState<OnlineOrder[]>([]);
+  const toast = useToast();
 
   const load = useCallback(() => {
-    const supabase = createClient()
+    const supabase = createClient();
     supabase
       .from("online_orders")
       .select("*")
       .in("status", ["pending", "confirmed", "paid"])
       .order("created_at", { ascending: false })
-      .then(({ data }) => setOrders((data as OnlineOrder[]) ?? []))
-  }, [])
+      .then(({ data }) => setOrders((data as OnlineOrder[]) ?? []));
+  }, []);
 
   useEffect(() => {
-    load()
-    const supabase = createClient()
+    load();
+    const supabase = createClient();
     const channel = supabase
       .channel("online_orders")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "online_orders" },
-        () => load(),
+      .on("postgres_changes", { event: "*", schema: "public", table: "online_orders" }, () =>
+        load()
       )
-      .subscribe()
+      .subscribe();
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [load])
+      supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   const act = useCallback(
-    async (
-      fn: () => Promise<{ ok: boolean; error?: string }>,
-      okMsg: string,
-    ) => {
-      const result = await fn()
+    async (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) => {
+      const result = await fn();
       if (result.ok) {
-        toast.show(okMsg, "success")
-        load()
+        toast.show(okMsg, "success");
+        load();
       } else {
-        toast.show(result.error ?? "Gagal", "error")
+        toast.show(result.error ?? "Gagal", "error");
       }
     },
-    [load, toast],
-  )
+    [load, toast]
+  );
 
-  const pendingCount = orders.filter((o) => o.status === "pending").length
+  const pendingCount = orders.filter((o) => o.status === "pending").length;
 
   return {
     orders,
@@ -80,5 +78,5 @@ export function useOnlineOrders() {
     markPaid: (id: string) => act(() => markOnlinePaid(id), "Ditandai lunas"),
     markDone: (id: string) => act(() => markOnlineDone(id), "Selesai"),
     cancel: (id: string) => act(() => cancelOnlineOrder(id), "Dibatalkan"),
-  }
+  };
 }
