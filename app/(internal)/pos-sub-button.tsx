@@ -7,18 +7,32 @@ interface PosSubButtonProps {
   icon: React.ElementType;
   panel: string;
   active?: boolean;
+  iconOnly?: boolean;
 }
 
-export function PosSubButton({ label, icon: Icon, panel, active }: PosSubButtonProps) {
+export function PosSubButton({ label, icon: Icon, panel, active, iconOnly }: PosSubButtonProps) {
   const handleClick = () => {
-    // If already on /pos, dispatch custom event to open panel
     if (window.location.pathname === "/pos") {
       window.dispatchEvent(new CustomEvent("pos:open-panel", { detail: panel }));
     } else {
-      // Navigate to /pos with panel param, PosClient will pick it up on mount
       window.location.href = `/pos?panel=${panel}`;
     }
   };
+
+  if (iconOnly) {
+    return (
+      <button
+        onClick={handleClick}
+        title={label}
+        aria-label={label}
+        className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+          active ? "bg-white/20" : "text-white/70 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <Icon size={15} />
+      </button>
+    );
+  }
 
   return (
     <button
