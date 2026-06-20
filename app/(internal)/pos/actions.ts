@@ -14,10 +14,12 @@ interface CheckoutItem {
   variants: { variantId: string; variantName: string; priceDelta: number }[];
 }
 
+type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
+
 interface CheckoutPayload {
   items: CheckoutItem[];
   total: number;
-  paymentMethod: "cash" | "qris";
+  paymentMethod: PaymentMethod;
 }
 
 export async function checkout(payload: CheckoutPayload) {

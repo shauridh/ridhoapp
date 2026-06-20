@@ -1,4 +1,5 @@
 "use client";
+import { rupiah } from "@/lib/format";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { ChartEmptyState } from "@/components/ui/chart-skeleton";
@@ -6,16 +7,19 @@ import { ChartEmptyState } from "@/components/ui/chart-skeleton";
 interface PaymentMethodChartProps {
   cash: number;
   qris: number;
+  title?: string;
 }
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 const COLORS = {
   cash: "#10b981",
   qris: "#3b82f6",
 };
 
-export function PaymentMethodChart({ cash, qris }: PaymentMethodChartProps) {
+export function PaymentMethodChart({
+  cash,
+  qris,
+  title = "Metode Pembayaran",
+}: PaymentMethodChartProps) {
   const total = cash + qris;
 
   if (total === 0) {
@@ -33,9 +37,7 @@ export function PaymentMethodChart({ cash, qris }: PaymentMethodChartProps) {
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          Metode Pembayaran
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">{title}</h3>
         <span className="text-xs text-ink-faint">Total: {rupiah(total)}</span>
       </div>
       <ResponsiveContainer width="100%" height={300}>

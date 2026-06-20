@@ -2,17 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { ShoppingCart, Bookmark, Bell } from "lucide-react";
-import type { ProductRow } from "@/lib/data/products";
-import type { VariantRow } from "@/lib/data/products";
-import { createClient } from "@/lib/supabase/client";
-import { createCart, addItem, removeItem, updateQty, cartTotal } from "@/lib/domain/cart";
-import type { Cart, CartVariant } from "@/lib/domain/cart";
 import type { GridSetting } from "@/lib/domain/grid";
+import type { SortSetting } from "@/lib/domain/product-filter";
+import { cartTotal } from "@/lib/domain/cart";
 import { useToast } from "@/components/ui/toast";
-import { useDialog } from "@/components/ui/dialog";
+import { createClient } from "@/lib/supabase/client";
 import { SlideOver } from "@/components/ui/slide-over";
-import { checkout, sendReceiptWa } from "./actions";
-import { holdOrder } from "./held-actions";
 import { ProductGrid } from "./product-grid";
 import { CartView } from "./cart";
 import { VariantPicker } from "./variant-picker";
@@ -22,21 +17,11 @@ import { OnlineOrders } from "./online-orders";
 import { HeldOrders } from "./held-orders";
 import { ShiftPanel } from "./shift-panel";
 import { useOnlineOrders } from "./use-online-orders";
-import { PosActionBar } from "./pos-action-bar";
+import { useProducts } from "./hooks/use-products";
+import { useCart } from "./hooks/use-cart";
 
 type Panel = "held" | "online" | "shift" | null;
-
-interface ReceiptState {
-  id: string;
-  total: number;
-  payment_method: string;
-  created_at: string;
-  items: { name: string; qty: number; price: number }[];
-  paid?: number;
-  change?: number;
-  order_number?: number; // nomor urut harian
-  customerPhone?: string; // untuk auto-trigger WA dari receipt modal
-}
+type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
 
 interface Props {
   shiftId: string;
@@ -46,6 +31,10 @@ interface Props {
   storeAddress?: string;
   storePhone?: string;
   receiptFooter?: string;
+  enableDiscount?: boolean;
+  enableReprint?: boolean;
+  enableTableNumber?: boolean;
+  extraPaymentMethods?: ("transfer" | "debit")[];
 }
 
 export function PosClient({
@@ -56,20 +45,18 @@ export function PosClient({
   storeAddress,
   storePhone,
   receiptFooter,
+  enableDiscount = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  enableReprint = true,
+  enableTableNumber = false,
+  extraPaymentMethods = [],
 }: Props) {
-  const [cart, setCart] = useState<Cart>(createCart());
-  const [products, setProducts] = useState<ProductRow[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const [variants, setVariants] = useState<Record<string, VariantRow[]>>({});
-  const [pendingProduct, setPendingProduct] = useState<ProductRow | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [receipt, setReceipt] = useState<ReceiptState | null>(null);
-  const [cols, setCols] = useState<GridSetting>(() => {
+  // ── Display preferences (persisted per device) ───────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [cols, _setCols] = useState<GridSetting>(() => {
     if (typeof window === "undefined") return "auto";
     const saved = localStorage.getItem("pos.gridCols");
-    if (saved === "3" || saved === "4" || saved === "5") {
-      return Number(saved) as GridSetting;
-    }
+    if (saved === "3" || saved === "4" || saved === "5") return Number(saved) as GridSetting;
     return "auto";
   });
   const [showSearch, setShowSearch] = useState(() => {
@@ -80,23 +67,41 @@ export function PosClient({
     if (typeof window === "undefined") return false;
     return localStorage.getItem("pos.showPrint") === "true";
   });
+  const [sort, setSort] = useState<SortSetting>(() => {
+    if (typeof window === "undefined") return "name";
+    const saved = localStorage.getItem("pos.sort");
+    if (
+      saved === "name" ||
+      saved === "price_asc" ||
+      saved === "price_desc" ||
+      saved === "best_seller"
+    )
+      return saved;
+    return "name";
+  });
 
-  const handleTogglePrint = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleTogglePrint = () => {
     setShowPrint((prev) => {
       const next = !prev;
       localStorage.setItem("pos.showPrint", String(next));
       return next;
     });
   };
-
-  const handleToggleSearch = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleToggleSearch = () => {
     setShowSearch((prev) => {
       const next = !prev;
       localStorage.setItem("pos.showSearch", String(next));
       return next;
     });
   };
+  const handleSortChange = (s: SortSetting) => {
+    setSort(s);
+    localStorage.setItem("pos.sort", s);
+  };
 
+  // ── UI state ─────────────────────────────────────────────────────────────
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -107,13 +112,10 @@ export function PosClient({
     if (p === "held" || p === "online" || p === "shift") return p;
     return null;
   });
-  const [heldRefresh, setHeldRefresh] = useState(0);
-  const [heldCount, setHeldCount] = useState(0);
-  const online = useOnlineOrders();
-  const toast = useToast();
-  const dialog = useDialog();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_heldCount, setHeldCount] = useState(0);
 
-  // Listen for sidebar sub-menu panel events
+  // ── External state listeners ──────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: Event) => {
       const p = (e as CustomEvent<string>).detail as Panel;
@@ -123,14 +125,27 @@ export function PosClient({
     return () => window.removeEventListener("pos:open-panel", handler);
   }, []);
 
-  // Track held orders count for floating indicator
+  useEffect(() => {
+    const onSearch = (e: Event) => setShowSearch((e as CustomEvent<boolean>).detail);
+    const onPrint = (e: Event) => setShowPrint((e as CustomEvent<boolean>).detail);
+    window.addEventListener("pos:toggle-search", onSearch);
+    window.addEventListener("pos:toggle-print", onPrint);
+    return () => {
+      window.removeEventListener("pos:toggle-search", onSearch);
+      window.removeEventListener("pos:toggle-print", onPrint);
+    };
+  }, []);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _toast = useToast();
+
   useEffect(() => {
     const supabase = createClient();
     const loadCount = () => {
       supabase
         .from("held_orders")
         .select("id", { count: "exact", head: true })
-        .then(({ count }) => setHeldCount(count ?? 0));
+        .then(({ count }: { count: number | null }) => setHeldCount(count ?? 0));
     };
     loadCount();
     const channel = supabase
@@ -142,162 +157,30 @@ export function PosClient({
     };
   }, []);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("products")
-      .select("*")
-      .eq("is_active", true)
-      .order("name")
-      .then(({ data, error }) => {
-        if (error) toast.show("Gagal memuat produk", "error");
-        setProducts(data ?? []);
-        setProductsLoading(false);
-      });
-  }, [toast]);
-
-  const cartQty: Record<string, number> = {};
-  for (const item of cart) {
-    cartQty[item.productId] = (cartQty[item.productId] ?? 0) + item.qty;
-  }
-
-  const handleSelectProduct = async (product: ProductRow) => {
-    const supabase = createClient();
-    const { data: vars } = await supabase
-      .from("product_variants")
-      .select("*")
-      .eq("product_id", product.id)
-      .eq("is_active", true);
-
-    if (vars && vars.length > 0) {
-      setVariants((prev) => ({ ...prev, [product.id]: vars }));
-      setPendingProduct(product);
-    } else {
-      setCart((prev) =>
-        addItem(prev, {
-          productId: product.id,
-          name: product.name,
-          qty: 1,
-          unitPrice: Number(product.base_price),
-          variants: [],
-        })
-      );
-    }
-  };
-
-  const handleVariantConfirm = (chosen: CartVariant[]) => {
-    if (!pendingProduct) return;
-    setCart((prev) =>
-      addItem(prev, {
-        productId: pendingProduct.id,
-        name: pendingProduct.name,
-        qty: 1,
-        unitPrice: Number(pendingProduct.base_price),
-        variants: chosen,
-      })
-    );
-    setPendingProduct(null);
-  };
-
-  // Simpan cart sebagai pesanan tersimpan, lalu kosongkan kasir.
-  const handleHold = async () => {
-    if (cart.length === 0) return;
-    const label = await dialog.prompt("Nama/nomor pesanan (mis. Meja 3 / Budi):", "Simpan Pesanan");
-    if (label === null) return;
-    const result = await holdOrder(label, cart);
-    if (result.ok) {
-      setCart(createCart());
-      setHeldRefresh((k) => k + 1);
-      toast.show("Pesanan disimpan", "success");
-    } else {
-      toast.show(result.error, "error");
-    }
-  };
-
-  // Lanjutkan pesanan tersimpan ke keranjang aktif.
-  const handleResume = (saved: Cart) => {
-    setCart((prev) => (prev.length === 0 ? saved : [...prev, ...saved]));
-  };
-
-  const handleCheckout = async (
-    method: "cash" | "qris",
-    paid: number,
-    change: number,
-    customerPhone?: string
-  ) => {
-    if (cart.length === 0) return;
-    setLoading(true);
-    try {
-      const result = await checkout({
-        items: cart.map((item) => ({
-          productId: item.productId,
-          productName: item.name,
-          qty: item.qty,
-          unitPrice: item.unitPrice,
-          variants: item.variants.map((v) => ({
-            variantId: v.variantId,
-            variantName: v.name,
-            priceDelta: v.priceDelta,
-          })),
-        })),
-        total: cartTotal(cart),
-        paymentMethod: method,
-      });
-      if (result.ok) {
-        toast.show("Transaksi berhasil", "success");
-        const receiptItems = cart.map((item) => ({
-          name: item.name,
-          qty: item.qty,
-          price: item.unitPrice + item.variants.reduce((s, v) => s + v.priceDelta, 0),
-        }));
-        setReceipt({
-          ...result.order,
-          paid,
-          change,
-          items: receiptItems,
-          customerPhone: customerPhone || undefined,
-        });
-        setCart(createCart());
-        setShowPayment(false);
-
-        // Kirim struk WA via server action (Satori PNG, tidak ada CDN dependency)
-        if (customerPhone) {
-          sendReceiptWa(customerPhone, {
-            orderId: result.order.id,
-            createdAt: result.order.created_at,
-            items: receiptItems,
-            total: result.order.total,
-            paymentMethod: method,
-            paid,
-            change,
-            storeName,
-            storeAddress,
-            storePhone,
-            receiptFooter,
-          }).catch(() => {}); // best-effort, abaikan error
-        }
-      } else {
-        toast.show(result.error, "error");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── Custom hooks ──────────────────────────────────────────────────────────
+  const { products, loading: productsLoading, variants, bestSellerIds } = useProducts();
+  const online = useOnlineOrders();
+  const {
+    cart,
+    cartQty,
+    pendingProduct,
+    setPendingProduct,
+    loading,
+    receipt,
+    setReceipt,
+    heldRefresh,
+    handleSelectProduct,
+    handleVariantConfirm,
+    handleHold,
+    handleResume,
+    handleCheckout,
+    updateQty,
+    removeItem,
+    clearCart,
+  } = useCart({ storeName, storeAddress, storePhone, receiptFooter }, variants);
 
   return (
     <div className="flex flex-col lg:h-[calc(100vh-2rem)]">
-      {/* Action bar: shortcut satu tap ke semua fitur kasir */}
-      <PosActionBar
-        heldCount={heldCount}
-        onlinePendingCount={online.pendingCount}
-        panel={panel}
-        onOpenPanel={setPanel}
-        showSearch={showSearch}
-        onToggleSearch={handleToggleSearch}
-        showPrint={showPrint}
-        onTogglePrint={handleTogglePrint}
-      />
-
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1 overflow-y-auto lg:pr-4">
           <ProductGrid
@@ -311,16 +194,18 @@ export function PosClient({
             onQueryChange={setQuery}
             category={category}
             onCategoryChange={setCategory}
+            sort={sort}
+            onSortChange={handleSortChange}
+            bestSellerIds={bestSellerIds}
           />
         </div>
 
-        {/* Cart sidebar: hanya tampil di layar lebar (lg+) */}
         <div className="hidden w-80 flex-col border-l border-hairline pl-4 lg:flex">
           <CartView
             cart={cart}
-            onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
-            onRemove={(i) => setCart((prev) => removeItem(prev, i))}
-            onClear={() => setCart(createCart())}
+            onUpdateQty={updateQty}
+            onRemove={removeItem}
+            onClear={clearCart}
             onHold={handleHold}
             onPay={() => setShowPayment(true)}
             disabled={loading}
@@ -328,7 +213,6 @@ export function PosClient({
         </div>
       </div>
 
-      {/* Bar keranjang melayang (HP/tablet sempit) */}
       {cart.length > 0 && (
         <button
           onClick={() => setShowCartSheet(true)}
@@ -342,7 +226,6 @@ export function PosClient({
         </button>
       )}
 
-      {/* Cart sebagai bottom-sheet di HP/tablet sempit */}
       {showCartSheet && (
         <div
           className="fixed inset-0 z-40 flex items-end bg-black/40 lg:hidden"
@@ -355,9 +238,9 @@ export function PosClient({
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-hairline" />
             <CartView
               cart={cart}
-              onUpdateQty={(i, q) => setCart((prev) => updateQty(prev, i, q))}
-              onRemove={(i) => setCart((prev) => removeItem(prev, i))}
-              onClear={() => setCart(createCart())}
+              onUpdateQty={updateQty}
+              onRemove={removeItem}
+              onClear={clearCart}
               onHold={handleHold}
               onPay={() => {
                 setShowCartSheet(false);
@@ -383,8 +266,14 @@ export function PosClient({
           total={cartTotal(cart)}
           loading={loading}
           qrisImageUrl={qrisImageUrl}
-          onConfirm={handleCheckout}
+          onConfirm={(method: PaymentMethod, paid: number, change: number, phone?: string) => {
+            handleCheckout(method, paid, change, phone);
+            setShowPayment(false);
+          }}
           onClose={() => setShowPayment(false)}
+          enableDiscount={enableDiscount}
+          enableTableNumber={enableTableNumber}
+          extraPaymentMethods={extraPaymentMethods}
         />
       )}
 

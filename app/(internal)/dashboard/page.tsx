@@ -1,4 +1,5 @@
 import { getDashboardData } from "@/lib/data/dashboard";
+import { rupiah } from "@/lib/format";
 import {
   comparePeriod,
   aggregateByHour,
@@ -11,15 +12,9 @@ import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { RangeSelector } from "./range-selector";
 import { TrendingUp, Receipt, ShoppingBag, Banknote, Star, Clock, Tag } from "lucide-react";
-import { HourlyChart } from "./hourly-chart";
-import { DailyChart } from "./daily-chart";
-import { TopProductsChart } from "./top-products-chart";
-import { PaymentMethodChart } from "./payment-method-chart";
-import { CategoryChart } from "./category-chart";
+import { DashboardCharts } from "./dashboard-charts";
 
 export const dynamic = "force-dynamic";
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 export default async function DashboardPage({
   searchParams,
@@ -241,17 +236,15 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <HourlyChart data={hourlyData} />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TopProductsChart products={topProducts} />
-        <DailyChart data={dailyData} prevData={prevDailyData} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <CategoryChart categories={categories} />
-        <PaymentMethodChart cash={data.cashTotal} qris={data.qrisTotal} />
-      </div>
+      <DashboardCharts
+        hourlyData={hourlyData}
+        topProducts={topProducts}
+        dailyData={dailyData}
+        prevDailyData={prevDailyData}
+        categories={categories}
+        cashTotal={data.cashTotal}
+        qrisTotal={data.qrisTotal}
+      />
     </div>
   );
 }

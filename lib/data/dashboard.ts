@@ -1,73 +1,85 @@
-import { createClient } from "@/lib/supabase/server"
-import type { SaleLine, DatedSale, CategoryLine } from "@/lib/domain/report"
+import { createClient } from "@/lib/supabase/server";
+import type { SaleLine, DatedSale, CategoryLine } from "@/lib/domain/report";
 
 export interface DashboardData {
-  lines: SaleLine[]
-  datedSales: DatedSale[]
-  categoryLines: CategoryLine[]
-  totalOmzet: number
-  totalTransaksi: number
-  totalItem: number
-  cashTotal: number
-  qrisTotal: number
+  lines: SaleLine[];
+  datedSales: DatedSale[];
+  categoryLines: CategoryLine[];
+  totalOmzet: number;
+  totalTransaksi: number;
+  totalItem: number;
+  cashTotal: number;
+  qrisTotal: number;
 }
 
 // Ambil data penjualan untuk rentang tanggal, hanya order completed.
-// Mengembalikan baris untuk berbagai agregasi (jam, hari, kategori, produk).
-export async function getDashboardData(
-  startIso: string,
-  endIso: string,
-): Promise<DashboardData> {
-  const supabase = await createClient()
+// Menggunakan parallel queries untuk mengurangi latency:
+// - Query 1: agregat order (total, payment_method) — tidak join items
+// - Query 2: order_items + category — hanya kolom yang dibutuhkan
+export async function getDashboardData(startIso: string, endIso: string): Promise<DashboardData> {
+  const supabase = await createClient();
 
-  const { data: orders, error } = await supabase
-    .from("orders")
-    .select(
-      "id, total, payment_method, created_at, order_items(product_name, qty, subtotal, products(category))",
-    )
-    .eq("status", "completed")
-    .gte("created_at", startIso)
-    .lte("created_at", endIso)
-  if (error) throw new Error(error.message)
+  // Jalankan dua query secara paralel
+  const [ordersResult, itemsResult] = await Promise.all([
+    // Query 1: agregat order untuk omzet, transaksi, payment breakdown
+    supabase
+      .from("orders")
+      .select("id, total, payment_method, created_at")
+      .eq("status", "completed")
+      .gte("created_at", startIso)
+      .lte("created_at", endIso),
 
-  const lines: SaleLine[] = []
-  const datedSales: DatedSale[] = []
-  const categoryLines: CategoryLine[] = []
-  let totalOmzet = 0
-  let totalItem = 0
-  let cashTotal = 0
-  let qrisTotal = 0
-  const orderList = orders ?? []
+    // Query 2: items untuk product lines dan category breakdown
+    supabase
+      .from("order_items")
+      .select("product_name, qty, subtotal, orders!inner(created_at, status), products(category)")
+      .eq("orders.status", "completed")
+      .gte("orders.created_at", startIso)
+      .lte("orders.created_at", endIso),
+  ]);
+
+  if (ordersResult.error) throw new Error(ordersResult.error.message);
+
+  const orderList = ordersResult.data ?? [];
+  const itemList = itemsResult.data ?? [];
+
+  // Agregasi dari orders
+  let totalOmzet = 0;
+  let cashTotal = 0;
+  let qrisTotal = 0;
+  const datedSales: DatedSale[] = [];
 
   for (const o of orderList) {
-    totalOmzet += Number(o.total)
-    if (o.payment_method === "cash") cashTotal += Number(o.total)
-    if (o.payment_method === "qris") qrisTotal += Number(o.total)
+    totalOmzet += Number(o.total);
+    if (o.payment_method === "cash") cashTotal += Number(o.total);
+    if (o.payment_method === "qris") qrisTotal += Number(o.total);
+    datedSales.push({
+      date: new Date(o.created_at).toISOString().slice(0, 10),
+      total: Number(o.total),
+    });
+  }
 
-    const d = new Date(o.created_at)
-    const hour = d.getHours()
-    datedSales.push({ date: d.toISOString().slice(0, 10), total: Number(o.total) })
+  // Agregasi dari items
+  let totalItem = 0;
+  const lines: SaleLine[] = [];
+  const categoryLines: CategoryLine[] = [];
 
-    const items =
-      (o.order_items as unknown as {
-        product_name: string
-        qty: number
-        subtotal: number
-        products: { category: string } | null
-      }[]) ?? []
-    for (const item of items) {
-      totalItem += item.qty
-      lines.push({
-        name: item.product_name,
-        qty: item.qty,
-        subtotal: Number(item.subtotal),
-        hour,
-      })
-      categoryLines.push({
-        category: item.products?.category ?? "",
-        subtotal: Number(item.subtotal),
-      })
-    }
+  for (const item of itemList) {
+    const order = item.orders as unknown as { created_at: string } | null;
+    const hour = order ? new Date(order.created_at).getHours() : 0;
+    const product = item.products as unknown as { category: string } | null;
+
+    totalItem += item.qty;
+    lines.push({
+      name: item.product_name,
+      qty: item.qty,
+      subtotal: Number(item.subtotal),
+      hour,
+    });
+    categoryLines.push({
+      category: product?.category ?? "",
+      subtotal: Number(item.subtotal),
+    });
   }
 
   return {
@@ -79,38 +91,5 @@ export async function getDashboardData(
     totalItem,
     cashTotal,
     qrisTotal,
-  }
-}
-
-// Total omzet saja untuk perbandingan periode (lebih ringan).
-export async function getOmzetForRange(
-  startIso: string,
-  endIso: string,
-): Promise<number> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("orders")
-    .select("total")
-    .eq("status", "completed")
-    .gte("created_at", startIso)
-    .lte("created_at", endIso)
-  return (data ?? []).reduce((s, o) => s + Number(o.total), 0)
-}
-
-// Daftar penjualan harian (date + total) untuk rentang waktu — ringan, untuk grafik tren.
-export async function getDailySales(
-  startIso: string,
-  endIso: string,
-): Promise<DatedSale[]> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("orders")
-    .select("created_at, total")
-    .eq("status", "completed")
-    .gte("created_at", startIso)
-    .lte("created_at", endIso)
-  return (data ?? []).map((o) => ({
-    date: new Date(o.created_at).toISOString().slice(0, 10),
-    total: Number(o.total),
-  }))
+  };
 }

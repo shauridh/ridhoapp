@@ -22,7 +22,7 @@ interface Movement {
   created_at: string;
 }
 
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+import { rupiah } from "@/lib/format";
 
 export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
   const [cashSales, setCashSales] = useState(0);
@@ -123,7 +123,10 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="flex w-full max-w-md flex-col overflow-y-auto bg-surface shadow-xl">
+      <div
+        className="flex w-full max-w-md flex-col overflow-y-auto bg-surface shadow-xl"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="sticky top-0 flex items-center justify-between border-b border-hairline bg-white px-4 py-3">
           <h2 className="flex items-center gap-2 font-bold text-ink">
             <Receipt size={18} className="text-brand" /> Kelola Shift

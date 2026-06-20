@@ -1,39 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, QrCode, X, MessageCircle } from "lucide-react";
+import {
+  Banknote,
+  QrCode,
+  X,
+  MessageCircle,
+  ArrowLeftRight,
+  CreditCard,
+  Percent,
+  Minus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calcChange, isPaymentSufficient, quickNominals } from "@/lib/domain/payment";
+
+type PaymentMethod = "cash" | "qris" | "transfer" | "debit";
 
 interface Props {
   total: number;
   loading: boolean;
   qrisImageUrl?: string;
-  onConfirm: (
-    method: "cash" | "qris",
-    paid: number,
-    change: number,
-    customerPhone?: string
-  ) => void;
+  enableDiscount?: boolean;
+  enableTableNumber?: boolean;
+  extraPaymentMethods?: ("transfer" | "debit")[];
+  onConfirm: (method: PaymentMethod, paid: number, change: number, customerPhone?: string) => void;
   onClose: () => void;
 }
 
-export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose }: Props) {
-  const [method, setMethod] = useState<"cash" | "qris">("cash");
+const METHOD_CONFIG: Record<
+  PaymentMethod,
+  { label: string; icon: import("lucide-react").LucideIcon }
+> = {
+  cash: { label: "Tunai", icon: Banknote },
+  qris: { label: "QRIS", icon: QrCode },
+  transfer: { label: "Transfer", icon: ArrowLeftRight },
+  debit: { label: "Kartu Debit", icon: CreditCard },
+};
+
+export function PaymentModal({
+  total,
+  loading,
+  qrisImageUrl,
+  enableDiscount = false,
+  enableTableNumber = false,
+  extraPaymentMethods = [],
+  onConfirm,
+  onClose,
+}: Props) {
+  const allMethods: PaymentMethod[] = ["cash", "qris", ...extraPaymentMethods];
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [paid, setPaid] = useState<number>(0);
   const [customerPhone, setCustomerPhone] = useState("");
+  const [tableNumber, setTableNumber] = useState("");
+  const [discountType, setDiscountType] = useState<"fixed" | "percent">("fixed");
+  const [discountValue, setDiscountValue] = useState<number>(0);
 
-  const nominals = quickNominals(total);
-  const change = calcChange(total, paid);
-  const cashOk = method === "cash" ? isPaymentSufficient(total, paid) : true;
+  const discountAmount = enableDiscount
+    ? discountType === "percent"
+      ? Math.round((total * discountValue) / 100)
+      : discountValue
+    : 0;
+  const finalTotal = Math.max(0, total - discountAmount);
+
+  const nominals = quickNominals(finalTotal);
+  const change = calcChange(finalTotal, paid);
+  const cashOk = method === "cash" ? isPaymentSufficient(finalTotal, paid) : true;
 
   const handleConfirm = () => {
     const phone = customerPhone.trim() || undefined;
-    if (method === "cash") {
-      onConfirm("cash", paid, change, phone);
-    } else {
-      onConfirm("qris", total, 0, phone);
-    }
+    const paidAmt = method === "cash" ? paid : finalTotal;
+    const changeAmt = method === "cash" ? change : 0;
+    onConfirm(method, paidAmt, changeAmt, phone);
   };
 
   return (
@@ -52,26 +89,90 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
           </button>
         </div>
 
+        {/* Diskon (opsional) */}
+        {enableDiscount && (
+          <div className="mb-4 space-y-2">
+            <p className="text-sm font-medium text-ink-soft">Diskon</p>
+            <div className="flex gap-2">
+              <div className="flex rounded-lg border border-hairline overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("fixed")}
+                  className={`px-3 py-1.5 text-xs font-semibold transition ${
+                    discountType === "fixed" ? "bg-brand text-white" : "bg-white text-ink-soft"
+                  }`}
+                >
+                  <Minus size={12} className="inline" /> Rp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("percent")}
+                  className={`px-3 py-1.5 text-xs font-semibold transition ${
+                    discountType === "percent" ? "bg-brand text-white" : "bg-white text-ink-soft"
+                  }`}
+                >
+                  <Percent size={12} className="inline" /> %
+                </button>
+              </div>
+              <input
+                type="number"
+                min={0}
+                max={discountType === "percent" ? 100 : total}
+                value={discountValue || ""}
+                onChange={(e) => setDiscountValue(Number(e.target.value))}
+                placeholder="0"
+                className="flex-1 rounded-lg border border-hairline px-3 py-1.5 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 rounded-xl bg-surface p-4 text-center">
           <div className="text-sm text-ink-soft">Total</div>
-          <div className="text-3xl font-bold text-brand">Rp {total.toLocaleString("id-ID")}</div>
+          {discountAmount > 0 && (
+            <div className="text-xs text-ink-soft line-through">
+              Rp {total.toLocaleString("id-ID")}
+            </div>
+          )}
+          <div className="text-3xl font-bold text-brand">
+            Rp {finalTotal.toLocaleString("id-ID")}
+          </div>
+          {discountAmount > 0 && (
+            <div className="text-xs text-success">
+              Hemat Rp {discountAmount.toLocaleString("id-ID")}
+            </div>
+          )}
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          <Button
-            variant={method === "cash" ? "success" : "ghost"}
-            icon={Banknote}
-            onClick={() => setMethod("cash")}
-          >
-            Tunai
-          </Button>
-          <Button
-            variant={method === "qris" ? "secondary" : "ghost"}
-            icon={QrCode}
-            onClick={() => setMethod("qris")}
-          >
-            QRIS
-          </Button>
+        {/* Nomor meja (opsional) */}
+        {enableTableNumber && (
+          <div className="mb-4">
+            <label className="mb-1 block text-sm text-ink-soft">Nomor / Nama Meja</label>
+            <input
+              type="text"
+              value={tableNumber}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="mis. Meja 3 / Take Away"
+              className="w-full rounded-lg border border-hairline px-3 py-2 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+            />
+          </div>
+        )}
+
+        {/* Metode bayar */}
+        <div className={`mb-4 grid gap-2 grid-cols-${Math.min(allMethods.length, 4)}`}>
+          {allMethods.map((m) => {
+            const cfg = METHOD_CONFIG[m];
+            return (
+              <Button
+                key={m}
+                variant={method === m ? (m === "cash" ? "success" : "secondary") : "ghost"}
+                icon={cfg.icon}
+                onClick={() => setMethod(m)}
+              >
+                {cfg.label}
+              </Button>
+            );
+          })}
         </div>
 
         {method === "cash" && (
@@ -87,7 +188,7 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
                       : "border-hairline bg-white text-ink hover:bg-surface"
                   }`}
                 >
-                  {n === total ? "Uang pas" : `Rp ${n.toLocaleString("id-ID")}`}
+                  {n === finalTotal ? "Uang pas" : `Rp ${n.toLocaleString("id-ID")}`}
                 </button>
               ))}
             </div>
@@ -129,6 +230,16 @@ export function PaymentModal({ total, loading, qrisImageUrl, onConfirm, onClose 
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {(method === "transfer" || method === "debit") && (
+          <div className="mb-4 rounded-xl bg-surface px-4 py-3 text-center">
+            <p className="text-sm text-ink-soft">
+              {method === "transfer"
+                ? "Konfirmasi setelah transfer diterima."
+                : "Gesek kartu, konfirmasi setelah approved."}
+            </p>
           </div>
         )}
 

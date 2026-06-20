@@ -1,11 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, ArrowUpDown } from "lucide-react";
 import type { ProductRow } from "@/lib/data/products";
 import { gridStyle, type GridSetting } from "@/lib/domain/grid";
-import { filterProducts, extractCategories } from "@/lib/domain/product-filter";
+import {
+  filterProducts,
+  extractCategories,
+  sortProducts,
+  type SortSetting,
+} from "@/lib/domain/product-filter";
 import { CategoryChips } from "./category-chips";
+
+const SORT_OPTIONS: { value: SortSetting; label: string }[] = [
+  { value: "name", label: "A–Z" },
+  { value: "price_asc", label: "Harga ↑" },
+  { value: "price_desc", label: "Harga ↓" },
+  { value: "best_seller", label: "Terlaku" },
+];
 
 interface Props {
   products: ProductRow[];
@@ -18,6 +30,9 @@ interface Props {
   onQueryChange: (q: string) => void;
   category: string | null;
   onCategoryChange: (c: string | null) => void;
+  sort: SortSetting;
+  onSortChange: (s: SortSetting) => void;
+  bestSellerIds: string[];
 }
 
 export function ProductGrid({
@@ -31,11 +46,14 @@ export function ProductGrid({
   onQueryChange,
   category,
   onCategoryChange,
+  sort,
+  onSortChange,
+  bestSellerIds,
 }: Props) {
   const categories = useMemo(() => extractCategories(products), [products]);
   const visible = useMemo(
-    () => filterProducts(products, query, category),
-    [products, query, category]
+    () => sortProducts(filterProducts(products, query, category), sort, bestSellerIds),
+    [products, query, category, sort, bestSellerIds]
   );
 
   return (
@@ -56,6 +74,26 @@ export function ProductGrid({
             />
           </div>
         )}
+
+        {/* Sort toggle bar */}
+        <div className="flex items-center gap-1.5">
+          <ArrowUpDown size={14} className="shrink-0 text-ink-soft" />
+          <div className="flex gap-1 overflow-x-auto">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onSortChange(opt.value)}
+                className={`shrink-0 rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                  sort === opt.value
+                    ? "bg-brand text-white"
+                    : "bg-surface text-ink-soft hover:bg-brand/10"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <CategoryChips categories={categories} active={category} onChange={onCategoryChange} />
       </div>

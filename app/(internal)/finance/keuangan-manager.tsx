@@ -1,54 +1,56 @@
-"use client"
+"use client";
 
-import { useState, useTransition } from "react"
-import { Plus, Check, Wallet, Repeat, HandCoins } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input, Select } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/toast"
+import { useState, useTransition } from "react";
+import { rupiah } from "@/lib/format";
+import { Plus, Check, Wallet, Repeat, HandCoins, Pencil, Trash2, X } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import {
   addAkun,
+  editAkun,
+  deleteAkun,
   addOpex,
   toggleOpexActive,
   addPiutang,
   markPiutangLunas,
-} from "./keuangan-actions"
-import type { AkunRow, OpexRow, PiutangRow } from "@/lib/data/akun"
+} from "./keuangan-actions";
+import type { AkunRow, OpexRow, PiutangRow } from "@/lib/data/akun";
 
-type Tab = "akun" | "opex" | "piutang"
+type Tab = "akun" | "opex" | "piutang";
 
 interface Props {
-  akun: AkunRow[]
-  opex: OpexRow[]
-  piutang: PiutangRow[]
+  akun: AkunRow[];
+  opex: OpexRow[];
+  piutang: PiutangRow[];
 }
 
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
-
 export function KeuanganManager({ akun, opex, piutang }: Props) {
-  const [tab, setTab] = useState<Tab>("akun")
-  const [pending, startTransition] = useTransition()
-  const toast = useToast()
+  const [tab, setTab] = useState<Tab>("akun");
+  const [pending, startTransition] = useTransition();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const toast = useToast();
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) =>
     startTransition(async () => {
-      const result = await fn()
-      if (result.ok) toast.show(ok, "success")
-      else toast.show(result.error ?? "Gagal", "error")
-    })
+      const result = await fn();
+      if (result.ok) toast.show(ok, "success");
+      else toast.show(result.error ?? "Gagal", "error");
+    });
 
   const tabs: { key: Tab; label: string; icon: typeof Wallet }[] = [
     { key: "akun", label: "Akun", icon: Wallet },
     { key: "opex", label: "Opex", icon: Repeat },
     { key: "piutang", label: "Hutang/Piutang", icon: HandCoins },
-  ]
+  ];
 
   return (
     <Card className="space-y-4">
       <div className="flex gap-2">
         {tabs.map((t) => {
-          const Icon = t.icon
+          const Icon = t.icon;
           return (
             <button
               key={t.key}
@@ -61,12 +63,13 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
             >
               <Icon size={16} /> {t.label}
             </button>
-          )
+          );
         })}
       </div>
 
       {tab === "akun" && (
         <div className="space-y-3">
+          {/* Form tambah akun baru */}
           <form
             action={(fd) => run(() => addAkun(fd), "Akun ditambahkan")}
             className="flex flex-wrap items-end gap-2"
@@ -88,14 +91,82 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
               Tambah
             </Button>
           </form>
+
+          {/* Daftar akun */}
           <ul className="divide-y divide-hairline rounded-lg border border-hairline">
             {akun.map((a) => (
-              <li key={a.id} className="flex justify-between px-3 py-2 text-sm text-ink">
-                <span className="flex items-center gap-2">
-                  {a.nama}
-                  <Badge tone="neutral">{a.tipe}</Badge>
-                </span>
-                <span className="font-semibold">{rupiah(a.saldo_awal)}</span>
+              <li key={a.id}>
+                {editingId === a.id ? (
+                  // Form edit inline
+                  <form
+                    action={(fd) => {
+                      setEditingId(null);
+                      run(() => editAkun(a.id, fd), "Akun diperbarui");
+                    }}
+                    className="flex flex-wrap items-end gap-2 px-3 py-2"
+                  >
+                    <div className="flex-1 min-w-[8rem]">
+                      <Input label="Nama akun" name="nama" required defaultValue={a.nama} />
+                    </div>
+                    <div className="w-36">
+                      <Select label="Tipe" name="tipe" defaultValue={a.tipe}>
+                        <option value="kas_fisik">Kas Fisik</option>
+                        <option value="bank">Bank</option>
+                        <option value="ewallet">E-Wallet</option>
+                      </Select>
+                    </div>
+                    <div className="w-36">
+                      <Input
+                        label="Saldo awal"
+                        name="saldoAwal"
+                        type="number"
+                        defaultValue={a.saldo_awal}
+                        money
+                      />
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="submit" icon={Check} loading={pending}>
+                        Simpan
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="flex items-center gap-1 rounded-lg border border-hairline px-2 py-1.5 text-xs text-ink-soft hover:bg-surface"
+                      >
+                        <X size={13} /> Batal
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  // Tampilan normal
+                  <div className="flex items-center justify-between px-3 py-2 text-sm text-ink">
+                    <span className="flex items-center gap-2">
+                      {a.nama}
+                      <Badge tone="neutral">{a.tipe}</Badge>
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="font-semibold">{rupiah(a.saldo_awal)}</span>
+                      <button
+                        onClick={() => setEditingId(a.id)}
+                        className="text-ink-soft transition hover:text-brand"
+                        aria-label={`Edit akun ${a.nama}`}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Hapus akun "${a.nama}"?`)) {
+                            run(() => deleteAkun(a.id), "Akun dihapus");
+                          }
+                        }}
+                        className="text-ink-soft transition hover:text-danger"
+                        aria-label={`Hapus akun ${a.nama}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </span>
+                  </div>
+                )}
               </li>
             ))}
             {akun.length === 0 && (
@@ -133,7 +204,10 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
           </form>
           <ul className="divide-y divide-hairline rounded-lg border border-hairline">
             {opex.map((o) => (
-              <li key={o.id} className="flex items-center justify-between px-3 py-2 text-sm text-ink">
+              <li
+                key={o.id}
+                className="flex items-center justify-between px-3 py-2 text-sm text-ink"
+              >
                 <span className="flex items-center gap-2">
                   {o.nama}
                   <Badge tone="neutral">{o.frekuensi}</Badge>
@@ -190,7 +264,10 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
           </form>
           <ul className="divide-y divide-hairline rounded-lg border border-hairline">
             {piutang.map((p) => (
-              <li key={p.id} className="flex items-center justify-between px-3 py-2 text-sm text-ink">
+              <li
+                key={p.id}
+                className="flex items-center justify-between px-3 py-2 text-sm text-ink"
+              >
                 <span className="flex items-center gap-2">
                   {p.pihak}
                   <Badge tone={p.tipe === "piutang" ? "success" : "danger"}>{p.tipe}</Badge>
@@ -221,5 +298,5 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
         </div>
       )}
     </Card>
-  )
+  );
 }

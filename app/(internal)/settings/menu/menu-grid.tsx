@@ -1,4 +1,5 @@
 "use client";
+import { rupiah } from "@/lib/format";
 
 import { useState } from "react";
 import { List, LayoutGrid } from "lucide-react";
@@ -10,8 +11,6 @@ import type { CategoryRow } from "@/lib/data/categories";
 import { ProductRowActions } from "./product-row-actions";
 
 type ViewMode = "list" | "grid";
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 interface Props {
   products: ProductRow[];

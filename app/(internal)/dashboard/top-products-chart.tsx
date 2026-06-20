@@ -1,4 +1,5 @@
 "use client";
+import { rupiah } from "@/lib/format";
 
 import {
   BarChart,
@@ -15,13 +16,12 @@ import { ChartEmptyState } from "@/components/ui/chart-skeleton";
 
 interface TopProductsChartProps {
   products: SellerStat[];
+  title?: string;
 }
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 const COLORS = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16"];
 
-export function TopProductsChart({ products }: TopProductsChartProps) {
+export function TopProductsChart({ products, title = "Produk Terlaris" }: TopProductsChartProps) {
   if (products.length === 0) {
     return <ChartEmptyState message="Belum ada produk terjual" />;
   }
@@ -42,9 +42,7 @@ export function TopProductsChart({ products }: TopProductsChartProps) {
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          Produk Terlaris
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">{title}</h3>
         <span className="text-xs text-ink-faint">Top {products.length} produk</span>
       </div>
       <ResponsiveContainer width="100%" height={300}>

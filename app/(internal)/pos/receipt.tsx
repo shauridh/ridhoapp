@@ -224,7 +224,6 @@ export function Receipt({
         console.error("[receipt] captureAndSendWa exception:", err);
         setWaStatus("failed");
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [order.id]
   );
@@ -253,7 +252,7 @@ export function Receipt({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-lg">
+      <div className="flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-lg">
         {/* Header modal */}
         <div className="no-print flex items-center justify-between border-b border-hairline px-5 py-3">
           <h3 className="font-semibold text-ink">Struk Transaksi</h3>
@@ -263,7 +262,7 @@ export function Receipt({
         </div>
 
         {/* ===== KONTEN STRUK (di-screenshot oleh html2canvas) ===== */}
-        <div ref={receiptRef} className="receipt-print bg-white px-5 py-4">
+        <div ref={receiptRef} className="receipt-print flex-1 overflow-y-auto bg-white px-5 py-4">
           {/* Header toko */}
           <div className="text-center">
             <div className="text-base font-extrabold uppercase tracking-widest text-ink">

@@ -52,3 +52,23 @@ export async function saveWhatsappSettings(formData: FormData) {
     { key: "wa_template", value: String(formData.get("wa_template") ?? "").trim() },
   ]);
 }
+
+export async function saveKasirSettings(formData: FormData) {
+  // Checkboxes tidak mengirim nilai kalau tidak dicentang — tangani eksplisit
+  const extraMethods = formData.getAll("extra_payment_methods").map(String).join(",");
+  return upsertKeys([
+    {
+      key: "enable_discount",
+      value: formData.get("enable_discount") === "true" ? "true" : "false",
+    },
+    {
+      key: "enable_reprint",
+      value: formData.get("enable_reprint") === "true" ? "true" : "false",
+    },
+    {
+      key: "enable_table_number",
+      value: formData.get("enable_table_number") === "true" ? "true" : "false",
+    },
+    { key: "extra_payment_methods", value: extraMethods },
+  ]);
+}

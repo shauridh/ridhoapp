@@ -1,4 +1,5 @@
 "use client";
+import { rupiah } from "@/lib/format";
 
 import {
   LineChart,
@@ -17,9 +18,8 @@ import { ChartEmptyState } from "@/components/ui/chart-skeleton";
 interface DailyChartProps {
   data: DayTotal[];
   prevData?: DayTotal[];
+  title?: string;
 }
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -28,7 +28,7 @@ function formatDate(dateStr: string) {
   return `${day} ${month}`;
 }
 
-export function DailyChart({ data, prevData }: DailyChartProps) {
+export function DailyChart({ data, prevData, title = "Tren Omzet Harian" }: DailyChartProps) {
   const totalOmzet = data.reduce((sum, d) => sum + d.total, 0);
 
   if (totalOmzet === 0) {
@@ -49,9 +49,7 @@ export function DailyChart({ data, prevData }: DailyChartProps) {
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          Tren Omzet Harian
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">{title}</h3>
         <span className="text-xs text-ink-faint">
           Rata-rata: {rupiah(Math.round(average))}/hari
         </span>

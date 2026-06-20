@@ -1,4 +1,5 @@
 "use client";
+import { rupiah } from "@/lib/format";
 
 import {
   BarChart,
@@ -15,11 +16,10 @@ import { ChartEmptyState } from "@/components/ui/chart-skeleton";
 
 interface HourlyChartProps {
   data: number[];
+  title?: string;
 }
 
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
-
-export function HourlyChart({ data }: HourlyChartProps) {
+export function HourlyChart({ data, title = "Omzet per Jam" }: HourlyChartProps) {
   const totalOmzet = data.reduce((sum, val) => sum + val, 0);
 
   if (totalOmzet === 0) {
@@ -45,9 +45,7 @@ export function HourlyChart({ data }: HourlyChartProps) {
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          Omzet per Jam
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">{title}</h3>
         <div className="flex items-center gap-3">
           {peakHours.length > 0 && (
             <span className="flex items-center gap-1 text-xs text-ink-faint">

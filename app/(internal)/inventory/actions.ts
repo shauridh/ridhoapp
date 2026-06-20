@@ -87,7 +87,10 @@ export async function deleteIngredient(id: string) {
   return { ok: true as const };
 }
 
-// Catat pembelian/penyesuaian: buat stock_movements DAN update stock_qty bahan.
+// Catat pembelian/penyesuaian: atomic delta update stock_qty + insert movement.
+// Menggunakan RPC apply_stock_delta yang melakukan:
+//   UPDATE ingredients SET stock_qty = stock_qty + delta  (atomic, no read-modify-write)
+//   INSERT stock_movements
 async function applyMovement(
   ingredientId: string,
   changeQty: number,
@@ -96,27 +99,19 @@ async function applyMovement(
 ) {
   const supabase = await createClient();
 
-  const { data: ing, error: readErr } = await supabase
-    .from("ingredients")
-    .select("stock_qty")
-    .eq("id", ingredientId)
-    .single();
-  if (readErr) return { ok: false as const, error: readErr.message };
+  // Auth check — defense in depth (RLS juga menjaga di DB level)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
 
-  const { error: moveErr } = await supabase.from("stock_movements").insert({
-    ingredient_id: ingredientId,
-    change_qty: changeQty,
-    reason,
-    note,
+  const { error } = await supabase.rpc("apply_stock_delta", {
+    p_ingredient_id: ingredientId,
+    p_delta: changeQty,
+    p_reason: reason,
+    p_note: note,
   });
-  if (moveErr) return { ok: false as const, error: moveErr.message };
-
-  const newQty = Number(ing.stock_qty) + changeQty;
-  const { error: updErr } = await supabase
-    .from("ingredients")
-    .update({ stock_qty: newQty })
-    .eq("id", ingredientId);
-  if (updErr) return { ok: false as const, error: updErr.message };
+  if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/inventory");
   return { ok: true as const };

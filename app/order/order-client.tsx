@@ -1,65 +1,62 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Plus, Minus, ShoppingBag, MapPin } from "lucide-react"
-import { submitOnlineOrder } from "./actions"
-import { calcOrderTotal, type OnlineCartItem } from "@/lib/domain/online-order"
+import { useState } from "react";
+import { rupiah } from "@/lib/format";
+import { Plus, Minus, ShoppingBag, MapPin } from "lucide-react";
+import { submitOnlineOrder } from "./actions";
+import { calcOrderTotal, type OnlineCartItem } from "@/lib/domain/online-order";
 
 interface PublicProduct {
-  id: string
-  name: string
-  category: string
-  base_price: number
-  image_url: string | null
+  id: string;
+  name: string;
+  category: string;
+  base_price: number;
+  image_url: string | null;
 }
 
 interface Props {
-  products: PublicProduct[]
-  storeName: string
-  ongkir: number
+  products: PublicProduct[];
+  storeName: string;
+  ongkir: number;
 }
 
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
-
 export function OrderClient({ products, storeName, ongkir }: Props) {
-  const [cart, setCart] = useState<Record<string, number>>({})
-  const [nama, setNama] = useState("")
-  const [phone, setPhone] = useState("")
-  const [alamat, setAlamat] = useState("")
-  const [catatan, setCatatan] = useState("")
-  const [locationUrl, setLocationUrl] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [nama, setNama] = useState("");
+  const [phone, setPhone] = useState("");
+  const [alamat, setAlamat] = useState("");
+  const [catatan, setCatatan] = useState("");
+  const [locationUrl, setLocationUrl] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const items: OnlineCartItem[] = products
     .filter((p) => (cart[p.id] ?? 0) > 0)
-    .map((p) => ({ name: p.name, qty: cart[p.id], harga: p.base_price }))
+    .map((p) => ({ name: p.name, qty: cart[p.id], harga: p.base_price }));
 
   const submitItems = products
     .filter((p) => (cart[p.id] ?? 0) > 0)
-    .map((p) => ({ productId: p.id, qty: cart[p.id] }))
+    .map((p) => ({ productId: p.id, qty: cart[p.id] }));
 
-  const { subtotal, total } = calcOrderTotal(items, ongkir)
+  const { subtotal, total } = calcOrderTotal(items, ongkir);
 
   const setQty = (id: string, delta: number) =>
     setCart((prev) => {
-      const next = Math.max(0, (prev[id] ?? 0) + delta)
-      return { ...prev, [id]: next }
-    })
+      const next = Math.max(0, (prev[id] ?? 0) + delta);
+      return { ...prev, [id]: next };
+    });
 
   const captureLocation = () => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      setLocationUrl(
-        `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`,
-      )
-    })
-  }
+      setLocationUrl(`https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`);
+    });
+  };
 
   const handleSubmit = async () => {
-    setError(null)
-    setSubmitting(true)
+    setError(null);
+    setSubmitting(true);
     try {
       const result = await submitOnlineOrder({
         nama,
@@ -68,13 +65,13 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
         catatan,
         items: submitItems,
         locationUrl,
-      })
-      if (result.ok) setDone(true)
-      else setError(result.error)
+      });
+      if (result.ok) setDone(true);
+      else setError(result.error);
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   if (done) {
     return (
@@ -82,11 +79,11 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
         <div className="text-5xl">✅</div>
         <h1 className="mt-3 text-xl font-bold text-ink">Pesanan Terkirim!</h1>
         <p className="mt-2 text-ink-soft">
-          Terima kasih. Pesanan kamu sudah kami terima dan akan segera diproses.
-          Kami akan menghubungi via WhatsApp.
+          Terima kasih. Pesanan kamu sudah kami terima dan akan segera diproses. Kami akan
+          menghubungi via WhatsApp.
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -123,9 +120,7 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
               >
                 <Minus size={16} />
               </button>
-              <span className="w-5 text-center font-semibold text-ink">
-                {cart[p.id] ?? 0}
-              </span>
+              <span className="w-5 text-center font-semibold text-ink">{cart[p.id] ?? 0}</span>
               <button
                 onClick={() => setQty(p.id, 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline bg-brand text-white"
@@ -143,10 +138,32 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
 
       <div className="space-y-2 rounded-2xl border border-hairline bg-white p-4 shadow-sm">
         <h2 className="font-semibold text-ink">Data Pemesan</h2>
-        <input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama" className="w-full rounded-lg border border-hairline px-3 py-2 text-ink" />
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Nomor WhatsApp" className="w-full rounded-lg border border-hairline px-3 py-2 text-ink" />
-        <textarea value={alamat} onChange={(e) => setAlamat(e.target.value)} placeholder="Alamat (untuk diantar)" rows={2} className="w-full rounded-lg border border-hairline px-3 py-2 text-ink" />
-        <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan (opsional)" rows={2} className="w-full rounded-lg border border-hairline px-3 py-2 text-ink" />
+        <input
+          value={nama}
+          onChange={(e) => setNama(e.target.value)}
+          placeholder="Nama"
+          className="w-full rounded-lg border border-hairline px-3 py-2 text-ink"
+        />
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Nomor WhatsApp"
+          className="w-full rounded-lg border border-hairline px-3 py-2 text-ink"
+        />
+        <textarea
+          value={alamat}
+          onChange={(e) => setAlamat(e.target.value)}
+          placeholder="Alamat (untuk diantar)"
+          rows={2}
+          className="w-full rounded-lg border border-hairline px-3 py-2 text-ink"
+        />
+        <textarea
+          value={catatan}
+          onChange={(e) => setCatatan(e.target.value)}
+          placeholder="Catatan (opsional)"
+          rows={2}
+          className="w-full rounded-lg border border-hairline px-3 py-2 text-ink"
+        />
         <button onClick={captureLocation} className="flex items-center gap-2 text-sm text-brand">
           <MapPin size={16} /> {locationUrl ? "Lokasi tersimpan ✓" : "Bagikan lokasi GPS"}
         </button>
@@ -180,5 +197,5 @@ export function OrderClient({ products, storeName, ongkir }: Props) {
         </div>
       </div>
     </div>
-  )
+  );
 }

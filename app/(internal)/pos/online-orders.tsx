@@ -1,55 +1,41 @@
-"use client"
+"use client";
+import { rupiah } from "@/lib/format";
 
-import { Check, X, MapPin, MessageCircle } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import type { OnlineOrder } from "./use-online-orders"
+import { Check, X, MapPin, MessageCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import type { OnlineOrder } from "./use-online-orders";
 
 interface Props {
-  orders: OnlineOrder[]
-  onConfirm: (id: string) => void
-  onMarkPaid: (id: string) => void
-  onMarkDone: (id: string) => void
-  onCancel: (id: string) => void
+  orders: OnlineOrder[];
+  onConfirm: (id: string) => void;
+  onMarkPaid: (id: string) => void;
+  onMarkDone: (id: string) => void;
+  onCancel: (id: string) => void;
 }
-
-const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`
 
 const statusTone: Record<string, "neutral" | "accent" | "success" | "danger"> = {
   pending: "accent",
   confirmed: "neutral",
   paid: "success",
-}
+};
 
 const waLink = (o: OnlineOrder) => {
-  const lines = o.items.map((i) => `- ${i.name} x${i.qty}`).join("\n")
-  const msg = `Halo ${o.nama}, pesanan kamu:\n${lines}\nTotal: ${rupiah(o.total)}\nTerima kasih sudah memesan di Sabana Fried Chicken!`
-  const phone = o.phone.replace(/^0/, "62").replace(/\D/g, "")
-  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-}
+  const lines = o.items.map((i) => `- ${i.name} x${i.qty}`).join("\n");
+  const msg = `Halo ${o.nama}, pesanan kamu:\n${lines}\nTotal: ${rupiah(o.total)}\nTerima kasih sudah memesan di Sabana Fried Chicken!`;
+  const phone = o.phone.replace(/^0/, "62").replace(/\D/g, "");
+  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+};
 
 // Konten daftar pesanan online (dipakai di dalam SlideOver).
-export function OnlineOrders({
-  orders,
-  onConfirm,
-  onMarkPaid,
-  onMarkDone,
-  onCancel,
-}: Props) {
+export function OnlineOrders({ orders, onConfirm, onMarkPaid, onMarkDone, onCancel }: Props) {
   if (orders.length === 0) {
-    return (
-      <p className="py-8 text-center text-sm text-ink-soft">
-        Belum ada pesanan online.
-      </p>
-    )
+    return <p className="py-8 text-center text-sm text-ink-soft">Belum ada pesanan online.</p>;
   }
 
   return (
     <div className="space-y-2">
       {orders.map((o) => (
-        <div
-          key={o.id}
-          className="rounded-xl border border-hairline bg-white p-3 text-sm"
-        >
+        <div key={o.id} className="rounded-xl border border-hairline bg-white p-3 text-sm">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-ink">{o.nama}</span>
             <Badge tone={statusTone[o.status] ?? "neutral"}>{o.status}</Badge>
@@ -118,5 +104,5 @@ export function OnlineOrders({
         </div>
       ))}
     </div>
-  )
+  );
 }
