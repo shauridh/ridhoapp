@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { OnlinePlatform } from "./use-online-orders";
+import { sendWa } from "@/lib/wa/getsender";
+import {
+  formatOrderConfirmedCustomer,
+  formatOrderDoneCustomer,
+} from "@/lib/wa/format-online-order";
 
 type OnlineStatus = "confirmed" | "paid" | "done" | "cancelled";
 
@@ -19,8 +24,45 @@ async function setStatus(orderId: string, status: OnlineStatus) {
     .eq("id", orderId);
   if (error) return { ok: false as const, error: error.message };
 
+  // Kirim notif WA ke pelanggan untuk status tertentu (best-effort)
+  if (status === "confirmed" || status === "done") {
+    void sendStatusNotif(supabase, orderId, status).catch(() => {});
+  }
+
   revalidatePath("/pos");
   return { ok: true as const };
+}
+
+async function sendStatusNotif(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+  status: "confirmed" | "done"
+) {
+  const [orderResult, settingsResult] = await Promise.all([
+    supabase.from("online_orders").select("nama, phone, items, total").eq("id", orderId).single(),
+    supabase.from("app_settings").select("key, value").in("key", ["store_name", "wa_estimasi"]),
+  ]);
+
+  if (orderResult.error || !orderResult.data) return;
+  const order = orderResult.data;
+  if (!order.phone || order.phone === "-") return;
+
+  const settings = new Map((settingsResult.data ?? []).map((r) => [r.key, r.value]));
+  const storeName = settings.get("store_name") ?? "Toko";
+  const estimasi = Number(settings.get("wa_estimasi") ?? 30);
+
+  const custNumber = order.phone.replace(/^\+/, "").replace(/^0/, "62");
+  const items = order.items as { name: string; qty: number; harga: number }[];
+
+  const msg =
+    status === "confirmed"
+      ? formatOrderConfirmedCustomer(
+          { storeName, nama: order.nama, items, total: Number(order.total) },
+          estimasi
+        )
+      : formatOrderDoneCustomer({ storeName, nama: order.nama, total: Number(order.total) });
+
+  await sendWa(custNumber, msg);
 }
 
 export async function confirmOnlineOrder(orderId: string) {

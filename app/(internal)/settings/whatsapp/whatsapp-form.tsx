@@ -11,9 +11,10 @@ interface Props {
   ownerWa: string;
   waReportEnabled: string;
   waTemplate: string;
+  waEstimasi: string;
 }
 
-export function WhatsappForm({ ownerWa, waReportEnabled, waTemplate }: Props) {
+export function WhatsappForm({ ownerWa, waReportEnabled, waTemplate, waEstimasi }: Props) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
@@ -58,6 +59,19 @@ export function WhatsappForm({ ownerWa, waReportEnabled, waTemplate }: Props) {
           <label htmlFor="wa_report_enabled" className="text-sm font-medium text-ink">
             Kirim rekap shift ke WA saat tutup shift
           </label>
+        </div>
+
+        <div>
+          <Input
+            name="wa_estimasi"
+            label="Estimasi waktu siap (menit)"
+            type="number"
+            defaultValue={waEstimasi || "30"}
+            placeholder="30"
+          />
+          <p className="mt-1 text-xs text-ink-faint">
+            Dikirim ke pelanggan saat kasir konfirmasi order online.
+          </p>
         </div>
 
         <div>

@@ -50,6 +50,7 @@ export async function saveWhatsappSettings(formData: FormData) {
       value: formData.get("wa_report_enabled") === "true" ? "true" : "false",
     },
     { key: "wa_template", value: String(formData.get("wa_template") ?? "").trim() },
+    { key: "wa_estimasi", value: String(Number(formData.get("wa_estimasi") ?? 30)) },
   ]);
 }
 
