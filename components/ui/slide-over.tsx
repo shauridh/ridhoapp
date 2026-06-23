@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { useRef, type ReactNode } from "react"
-import { X } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
-import { useOverlayA11y } from "./use-overlay-a11y"
+import { useRef, type ReactNode } from "react";
+import { X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useOverlayA11y } from "./use-overlay-a11y";
 
 interface Props {
-  title: string
-  icon?: LucideIcon
-  onClose: () => void
-  children: ReactNode
-  widthClass?: string
+  title: string;
+  icon?: LucideIcon;
+  onClose: () => void;
+  children: ReactNode;
+  widthClass?: string;
 }
 
 // Panel geser dari kanan untuk konten sekunder (tersimpan, online, aksi stok, dll).
@@ -21,11 +21,11 @@ export function SlideOver({
   children,
   widthClass = "max-w-md",
 }: Props) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  useOverlayA11y(true, onClose, panelRef)
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayA11y(true, onClose, panelRef);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
       <div
         ref={panelRef}
         role="dialog"
@@ -51,5 +51,5 @@ export function SlideOver({
         <div className="flex-1 p-4">{children}</div>
       </div>
     </div>
-  )
+  );
 }

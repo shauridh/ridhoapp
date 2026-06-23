@@ -6,8 +6,22 @@ import { HourlyChart } from "./hourly-chart";
 import { DailyChart } from "./daily-chart";
 import { TopProductsChart } from "./top-products-chart";
 import { CategoryChart } from "./category-chart";
-import { PaymentMethodChart } from "./payment-method-chart";
+import { TransactionTypeChart } from "./transaction-type-chart";
 import type { SellerStat, DayTotal, CategoryStat } from "@/lib/domain/report";
+
+interface OrderCount {
+  offline: number;
+  gojek: number;
+  grab: number;
+  shopee: number;
+}
+
+interface TransactionBreakdown {
+  offline: number;
+  gojek: number;
+  grab: number;
+  shopee: number;
+}
 
 interface Props {
   hourlyData: number[];
@@ -17,6 +31,11 @@ interface Props {
   categories: CategoryStat[];
   cashTotal: number;
   qrisTotal: number;
+  paymentBreakdown: Record<string, number>;
+  transactionBreakdown: TransactionBreakdown;
+  prevTransactionBreakdown: TransactionBreakdown;
+  orderCount: OrderCount;
+  prevOrderCount: OrderCount;
 }
 
 export function DashboardCharts({
@@ -25,22 +44,21 @@ export function DashboardCharts({
   dailyData,
   prevDailyData,
   categories,
-  cashTotal,
-  qrisTotal,
+  transactionBreakdown,
+  prevTransactionBreakdown,
+  orderCount,
+  prevOrderCount,
 }: Props) {
   const [config, setConfig] = useState<WidgetConfig[]>([]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setConfig(loadDashboardConfig());
-
-    // Re-load config saat setting berubah (localStorage event dari tab lain)
     const handler = () => setConfig(loadDashboardConfig());
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
 
-  // Sebelum config loaded dari localStorage, render default order
   const widgets =
     config.length > 0
       ? config
@@ -49,13 +67,10 @@ export function DashboardCharts({
           { id: "top_products", title: "Produk Terlaris", visible: true },
           { id: "daily", title: "Tren Omzet Harian", visible: true },
           { id: "category", title: "Omzet per Kategori", visible: true },
-          { id: "payment_method", title: "Metode Pembayaran", visible: true },
+          { id: "payment_method", title: "Jenis Transaksi", visible: true },
         ] as WidgetConfig[]);
 
   const visible = widgets.filter((w) => w.visible);
-
-  // Pisahkan menjadi fullwidth dan grid-2
-  // hourly selalu fullwidth, sisanya berpasangan dalam grid 2 kolom
   const fullWidth = visible.filter((w) => w.id === "hourly");
   const gridItems = visible.filter((w) => w.id !== "hourly");
 
@@ -70,7 +85,16 @@ export function DashboardCharts({
       case "category":
         return <CategoryChart key={w.id} categories={categories} title={w.title} />;
       case "payment_method":
-        return <PaymentMethodChart key={w.id} cash={cashTotal} qris={qrisTotal} title={w.title} />;
+        return (
+          <TransactionTypeChart
+            key={w.id}
+            orderCount={orderCount}
+            prevOrderCount={prevOrderCount}
+            transactionBreakdown={transactionBreakdown}
+            prevTransactionBreakdown={prevTransactionBreakdown}
+            title={w.title}
+          />
+        );
       default:
         return null;
     }
@@ -78,10 +102,7 @@ export function DashboardCharts({
 
   return (
     <div className="space-y-6">
-      {/* Full-width charts */}
       {fullWidth.map(renderChart)}
-
-      {/* Grid charts: 2 kolom di desktop */}
       {gridItems.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">{gridItems.map(renderChart)}</div>
       )}

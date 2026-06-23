@@ -5,8 +5,20 @@ import { cartTotal } from "@/lib/domain/cart";
 import { Button } from "@/components/ui/button";
 import { CreditCard, Trash2, Bookmark } from "lucide-react";
 
+export type OrderType = "takeaway" | "dinein" | "gojek" | "grab" | "shopee";
+
+export const ORDER_TYPE_OPTIONS: { key: OrderType; label: string; isOnline: boolean }[] = [
+  { key: "takeaway", label: "Take Away", isOnline: false },
+  { key: "dinein", label: "Dine In", isOnline: false },
+  { key: "gojek", label: "GoFood", isOnline: true },
+  { key: "grab", label: "GrabFood", isOnline: true },
+  { key: "shopee", label: "ShopeeFood", isOnline: true },
+];
+
 interface Props {
   cart: Cart;
+  orderType: OrderType;
+  onOrderTypeChange: (t: OrderType) => void;
   onUpdateQty: (index: number, qty: number) => void;
   onRemove: (index: number) => void;
   onClear: () => void;
@@ -15,7 +27,17 @@ interface Props {
   disabled: boolean;
 }
 
-export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, disabled }: Props) {
+export function CartView({
+  cart,
+  orderType,
+  onOrderTypeChange,
+  onUpdateQty,
+  onRemove,
+  onClear,
+  onHold,
+  onPay,
+  disabled,
+}: Props) {
   const totalItem = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
@@ -33,7 +55,7 @@ export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, 
         )}
       </div>
 
-      {/* Item list — flat, tanpa card */}
+      {/* Item list */}
       <div className="flex-1 overflow-y-auto">
         {cart.length === 0 && (
           <p className="py-6 text-center text-sm text-ink-soft">Belum ada item.</p>
@@ -44,14 +66,10 @@ export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, 
           const lineTotal = unitWithVariants * item.qty;
           return (
             <div key={idx} className="border-b border-hairline py-2 last:border-b-0">
-              {/* Baris utama: nama + qty controls + harga + hapus */}
               <div className="flex items-center gap-1.5">
-                {/* Nama produk */}
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
                   {item.name}
                 </span>
-
-                {/* Qty controls — lebar fixed agar kolom selalu rata */}
                 <div className="flex shrink-0 items-center">
                   <button
                     onClick={() => onUpdateQty(idx, item.qty - 1)}
@@ -71,13 +89,9 @@ export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, 
                     +
                   </button>
                 </div>
-
-                {/* Harga subtotal */}
                 <span className="shrink-0 text-right text-sm font-semibold text-ink">
                   Rp {lineTotal.toLocaleString("id-ID")}
                 </span>
-
-                {/* Tombol hapus */}
                 <button
                   onClick={() => onRemove(idx)}
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-faint transition hover:text-danger"
@@ -86,8 +100,6 @@ export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, 
                   ✕
                 </button>
               </div>
-
-              {/* Baris varian (jika ada) */}
               {item.variants.length > 0 && (
                 <div className="mt-0.5 pl-0 text-xs text-ink-soft">
                   {item.variants.map((v) => v.name).join(", ")}
@@ -98,21 +110,49 @@ export function CartView({ cart, onUpdateQty, onRemove, onClear, onHold, onPay, 
         })}
       </div>
 
-      {/* Footer: total + tombol aksi */}
-      <div className="mt-3 border-t border-hairline pt-3">
-        {/* Total — lebih besar agar mudah dipindai saat transaksi ramai */}
-        <div className="mb-3 flex items-baseline justify-between">
+      {/* Footer */}
+      <div className="mt-3 border-t border-hairline pt-3 space-y-3">
+        {/* Total */}
+        <div className="flex items-baseline justify-between">
           <span className="text-sm font-semibold text-ink-soft">Total</span>
           <span className="text-xl font-bold text-ink">
             Rp {cartTotal(cart).toLocaleString("id-ID")}
           </span>
         </div>
-        {/* Item count summary */}
         {totalItem > 0 && (
-          <p className="mb-3 text-xs text-ink-soft">
+          <p className="text-xs text-ink-soft">
             {totalItem} item &middot; {cart.length} jenis produk
           </p>
         )}
+
+        {/* Jenis Transaksi */}
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-ink-soft">Jenis Transaksi</p>
+          <div className="grid grid-cols-5 gap-1 overflow-hidden">
+            {ORDER_TYPE_OPTIONS.map((t) => {
+              const selected = orderType === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => onOrderTypeChange(t.key)}
+                  aria-pressed={selected}
+                  className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border py-2 text-center text-[9px] font-semibold leading-tight transition ${
+                    selected
+                      ? t.isOnline
+                        ? "border-brand bg-tint-red text-brand"
+                        : "border-info bg-tint-blue text-info"
+                      : "border-hairline bg-white text-ink-soft hover:bg-surface"
+                  }`}
+                >
+                  <span className="w-full truncate px-0.5 text-center">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tombol aksi */}
         <div className="flex gap-2">
           <Button
             variant="secondary"

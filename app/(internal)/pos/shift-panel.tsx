@@ -132,12 +132,12 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
-        className="flex w-full max-w-md flex-col overflow-y-auto bg-surface shadow-xl"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="flex w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl"
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
       >
-        <div className="sticky top-0 flex items-center justify-between border-b border-hairline bg-white px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3">
           <h2 className="flex items-center gap-2 font-bold text-ink">
             <Receipt size={18} className="text-brand" /> Kelola Shift
           </h2>
@@ -146,7 +146,7 @@ export function ShiftPanel({ shiftId, openingBalance, onClose }: Props) {
           </button>
         </div>
 
-        <div className="space-y-4 p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto space-y-4 p-4">
           {/* Ringkasan kas — expected vs actual sebagai fokus utama */}
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-ink">Ringkasan Kas</h3>

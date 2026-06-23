@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import { SlideOver } from "@/components/ui/slide-over";
 import { ProductGrid } from "./product-grid";
-import { CartView } from "./cart";
+import { CartView, type OrderType } from "./cart";
 import { VariantPicker } from "./variant-picker";
 import { PaymentModal } from "./payment-modal";
 import { Receipt as ReceiptModal } from "./receipt";
@@ -114,6 +114,7 @@ export function PosClient({
   const [category, setCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
+  const [orderType, setOrderType] = useState<OrderType>("takeaway");
   const [panel, setPanel] = useState<Panel>(() => {
     if (typeof window === "undefined") return null;
     const p = new URLSearchParams(window.location.search).get("panel") as Panel;
@@ -232,6 +233,8 @@ export function PosClient({
         <div className="hidden w-80 flex-col border-l border-hairline pl-4 lg:flex">
           <CartView
             cart={cart}
+            orderType={orderType}
+            onOrderTypeChange={setOrderType}
             onUpdateQty={updateQty}
             onRemove={removeItem}
             onClear={clearCart}
@@ -267,6 +270,8 @@ export function PosClient({
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-hairline" />
             <CartView
               cart={cart}
+              orderType={orderType}
+              onOrderTypeChange={setOrderType}
               onUpdateQty={updateQty}
               onRemove={removeItem}
               onClear={clearCart}
@@ -295,6 +300,7 @@ export function PosClient({
           total={cartTotal(cart)}
           loading={loading}
           qrisImageUrl={qrisImageUrl}
+          orderType={orderType}
           onConfirm={(method: PaymentMethod, paid: number, change: number, phone?: string) => {
             handleCheckout(method, paid, change, phone);
             setShowPayment(false);

@@ -66,18 +66,28 @@ export async function closeShift(payload: {
     cashSales?: number;
     qrisTotal?: number;
     transferTotal?: number;
+    gojekTotal?: number;
+    grabTotal?: number;
+    shopeeTotal?: number;
     otherTotal?: number;
+    cashOut?: number;
     openingBalance?: number;
     closingBalance?: number;
+    ownerWithdrawal?: number;
     cashDiff?: number;
   };
   await sendShiftReport(supabase, payload.shiftId, {
     cashSales: Number(s.cashSales ?? 0),
     qrisTotal: Number(s.qrisTotal ?? 0),
     transferTotal: Number(s.transferTotal ?? 0),
+    gojekTotal: Number(s.gojekTotal ?? 0),
+    grabTotal: Number(s.grabTotal ?? 0),
+    shopeeTotal: Number(s.shopeeTotal ?? 0),
     otherTotal: Number(s.otherTotal ?? 0),
+    cashOut: Number(s.cashOut ?? 0),
     openingBalance: Number(s.openingBalance ?? 0),
     closingBalance: Number(s.closingBalance ?? 0),
+    ownerWithdrawal: Number(s.ownerWithdrawal ?? 0),
     cashDiff: Number(s.cashDiff ?? 0),
   });
 
@@ -94,9 +104,14 @@ async function sendShiftReport(
     cashSales: number;
     qrisTotal: number;
     transferTotal: number;
+    gojekTotal: number;
+    grabTotal: number;
+    shopeeTotal: number;
     otherTotal: number;
+    cashOut: number;
     openingBalance: number;
     closingBalance: number;
+    ownerWithdrawal: number;
     cashDiff: number;
   }
 ) {
@@ -148,10 +163,16 @@ async function sendShiftReport(
       tunai: totals.cashSales,
       qris: totals.qrisTotal,
       transfer: totals.transferTotal,
+      gojek: totals.gojekTotal,
+      grab: totals.grabTotal,
+      shopee: totals.shopeeTotal,
       lainnya: totals.otherTotal,
       kasAwal: totals.openingBalance,
-      kasAkhir: totals.closingBalance,
+      kasAkhir: totals.closingBalance + totals.ownerWithdrawal, // counted_cash sebelum ambil owner
+      cashOut: totals.cashOut,
+      ownerWithdrawal: totals.ownerWithdrawal,
       selisih: totals.cashDiff,
+      kasRilOwner: totals.closingBalance, // sisa di laci setelah owner ambil
       topSellers: topSellers(lines, 5).map((s) => ({
         name: s.name,
         qty: s.qty,

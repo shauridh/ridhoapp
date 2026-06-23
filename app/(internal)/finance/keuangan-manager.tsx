@@ -12,17 +12,18 @@ import {
   addAkun,
   editAkun,
   deleteAkun,
+  toggleOwnerAkun,
   addOpex,
   toggleOpexActive,
   addPiutang,
   markPiutangLunas,
 } from "./keuangan-actions";
-import type { AkunRow, OpexRow, PiutangRow } from "@/lib/data/akun";
+import type { AkunWithBalance, OpexRow, PiutangRow } from "@/lib/data/akun";
 
 type Tab = "akun" | "opex" | "piutang";
 
 interface Props {
-  akun: AkunRow[];
+  akun: AkunWithBalance[];
   opex: OpexRow[];
   piutang: PiutangRow[];
 }
@@ -143,9 +144,25 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
                     <span className="flex items-center gap-2">
                       {a.nama}
                       <Badge tone="neutral">{a.tipe}</Badge>
+                      {a.is_owner && <Badge tone="success">Owner</Badge>}
                     </span>
                     <span className="flex items-center gap-3">
-                      <span className="font-semibold">{rupiah(a.saldo_awal)}</span>
+                      <span className="font-semibold">{rupiah(a.saldo)}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          run(
+                            () => toggleOwnerAkun(a.id, !a.is_owner),
+                            a.is_owner ? "Ditandai bukan akun owner" : "Ditandai sebagai akun owner"
+                          )
+                        }
+                        className={`text-xs font-medium transition ${a.is_owner ? "text-success hover:text-danger" : "text-ink-soft hover:text-success"}`}
+                        title={
+                          a.is_owner ? "Hapus tanda owner" : "Tandai sebagai akun kas ril owner"
+                        }
+                      >
+                        {a.is_owner ? "✓ Owner" : "Jadikan Owner"}
+                      </button>
                       <button
                         onClick={() => setEditingId(a.id)}
                         className="text-ink-soft transition hover:text-brand"

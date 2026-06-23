@@ -1,44 +1,34 @@
-"use client"
+"use client";
 
-import { type ReactNode, useRef } from "react"
-import { X } from "lucide-react"
-import { useOverlayA11y } from "./use-overlay-a11y"
+import { type ReactNode, useRef } from "react";
+import { X } from "lucide-react";
+import { useOverlayA11y } from "./use-overlay-a11y";
 
-type Size = "sm" | "md" | "lg"
+type Size = "sm" | "md" | "lg";
 
 interface ModalProps {
-  open: boolean
-  onClose: () => void
-  title?: string
-  size?: Size
-  children: ReactNode
-  footer?: ReactNode
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: Size;
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
 const sizeClass: Record<Size, string> = {
   sm: "max-w-sm",
   md: "max-w-lg",
   lg: "max-w-2xl",
-}
+};
 
-export function Modal({
-  open,
-  onClose,
-  title,
-  size = "md",
-  children,
-  footer,
-}: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  useOverlayA11y(open, onClose, panelRef)
+export function Modal({ open, onClose, title, size = "md", children, footer }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlayA11y(open, onClose, panelRef);
 
-  if (!open) return null
+  if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
         ref={panelRef}
         role="dialog"
@@ -61,10 +51,8 @@ export function Modal({
           </div>
         )}
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
-        {footer && (
-          <div className="border-t border-hairline px-5 py-3">{footer}</div>
-        )}
+        {footer && <div className="border-t border-hairline px-5 py-3">{footer}</div>}
       </div>
     </div>
-  )
+  );
 }

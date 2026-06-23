@@ -20,6 +20,8 @@ interface CheckoutPayload {
   items: CheckoutItem[];
   total: number;
   paymentMethod: PaymentMethod;
+  paid?: number;
+  change?: number;
 }
 
 export async function checkout(payload: CheckoutPayload) {
@@ -38,6 +40,8 @@ export async function checkout(payload: CheckoutPayload) {
     p_total: payload.total,
     p_payment_method: payload.paymentMethod,
     p_items: payload.items,
+    p_paid: payload.paid ?? null,
+    p_change: payload.change ?? null,
   });
   if (error) return { ok: false as const, error: error.message };
 

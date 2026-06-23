@@ -146,6 +146,8 @@ export function useCart(storeInfo: StoreInfo, variants: Record<string, VariantRo
         })),
         total: cartTotal(cart),
         paymentMethod: method,
+        paid,
+        change,
       });
       if (result.ok) {
         toast.show("Transaksi berhasil", "success");

@@ -100,6 +100,15 @@ export async function getLastClosedShiftBalance(): Promise<number> {
   return Number(data?.closing_balance ?? 0);
 }
 
+// Total semua dana yang sudah ditarik owner dari shifts (kas ril owner).
+export async function getTotalOwnerWithdrawals(): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("shifts").select("owner_withdrawal").eq("status", "closed");
+
+  if (!data) return 0;
+  return data.reduce((sum, row) => sum + Number(row.owner_withdrawal ?? 0), 0);
+}
+
 export interface DrawerMovement {
   id: string;
   amount: number;

@@ -11,6 +11,33 @@ export interface DashboardData {
   totalItem: number;
   cashTotal: number;
   qrisTotal: number;
+  /** Breakdown omzet per metode pembayaran (semua metode) */
+  paymentBreakdown: Record<string, number>;
+  /** Breakdown omzet: offline total vs per platform online */
+  transactionBreakdown: {
+    offline: number;
+    gojek: number;
+    grab: number;
+    shopee: number;
+  };
+  /** Breakdown order count per channel */
+  orderCount: {
+    offline: number;
+    gojek: number;
+    grab: number;
+    shopee: number;
+  };
+  /** Breakdown pembayaran offline saja (cash, qris, transfer, dll) */
+  offlinePaymentBreakdown: Record<string, number>;
+}
+
+/** Deteksi apakah payment method adalah platform online food */
+export function isOnlinePlatform(method: string): "gojek" | "grab" | "shopee" | null {
+  const m = method.toLowerCase();
+  if (m.includes("gojek") || m.includes("gofood") || m.includes("go-food")) return "gojek";
+  if (m.includes("grab")) return "grab";
+  if (m.includes("shopee")) return "shopee";
+  return null;
 }
 
 // Ambil data penjualan untuk rentang tanggal, hanya order completed.
@@ -48,15 +75,34 @@ export async function getDashboardData(startIso: string, endIso: string): Promis
   let totalOmzet = 0;
   let cashTotal = 0;
   let qrisTotal = 0;
+  const paymentBreakdown: Record<string, number> = {};
+  const offlinePaymentBreakdown: Record<string, number> = {};
+  const transactionBreakdown = { offline: 0, gojek: 0, grab: 0, shopee: 0 };
+  const orderCount = { offline: 0, gojek: 0, grab: 0, shopee: 0 };
   const datedSales: DatedSale[] = [];
 
   for (const o of orderList) {
-    totalOmzet += Number(o.total);
-    if (o.payment_method === "cash") cashTotal += Number(o.total);
-    if (o.payment_method === "qris") qrisTotal += Number(o.total);
+    const amount = Number(o.total);
+    totalOmzet += amount;
+    const method = (o.payment_method as string) || "lainnya";
+    paymentBreakdown[method] = (paymentBreakdown[method] ?? 0) + amount;
+
+    const platform = isOnlinePlatform(method);
+    if (platform) {
+      transactionBreakdown[platform] += amount;
+      orderCount[platform] += 1;
+    } else {
+      transactionBreakdown.offline += amount;
+      orderCount.offline += 1;
+      offlinePaymentBreakdown[method] = (offlinePaymentBreakdown[method] ?? 0) + amount;
+      const ml = method.toLowerCase();
+      if (ml === "cash" || ml.includes("tunai")) cashTotal += amount;
+      if (ml.includes("qris")) qrisTotal += amount;
+    }
+
     datedSales.push({
       date: toWibDateString(new Date(o.created_at)),
-      total: Number(o.total),
+      total: amount,
     });
   }
 
@@ -92,5 +138,9 @@ export async function getDashboardData(startIso: string, endIso: string): Promis
     totalItem,
     cashTotal,
     qrisTotal,
+    paymentBreakdown,
+    transactionBreakdown,
+    orderCount,
+    offlinePaymentBreakdown,
   };
 }

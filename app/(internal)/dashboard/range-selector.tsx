@@ -1,33 +1,168 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { CalendarDays, ChevronDown } from "lucide-react";
 
 const PRESETS = [
   { key: "today", label: "Hari Ini" },
-  { key: "yesterday", label: "Kemarin" },
-  { key: "7d", label: "7 Hari" },
-  { key: "30d", label: "30 Hari" },
+  { key: "this_week", label: "Minggu Ini" },
   { key: "this_month", label: "Bulan Ini" },
+  { key: "this_year", label: "Tahun Ini" },
+  { key: "all_time", label: "Semua Waktu" },
 ];
+
+function todayWib() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+}
 
 export function RangeSelector() {
   const router = useRouter();
   const params = useSearchParams();
-  const current = params.get("range") ?? "today";
+  const currentRange = params.get("range") ?? "today";
+  const currentFrom = params.get("from") ?? "";
+  const currentTo = params.get("to") ?? "";
+  const isCustom = !!(currentFrom && currentTo);
+
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"preset" | "custom">(isCustom ? "custom" : "preset");
+  const [from, setFrom] = useState(currentFrom || todayWib());
+  const [to, setTo] = useState(currentTo || todayWib());
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const applyPreset = (key: string) => {
+    setOpen(false);
+    router.push(`/dashboard?range=${key}`);
+  };
+
+  const applyCustom = () => {
+    if (!from || !to) return;
+    const f = from <= to ? from : to;
+    const t = from <= to ? to : from;
+    setOpen(false);
+    router.push(`/dashboard?from=${f}&to=${t}`);
+  };
+
+  // Label yang tampil di tombol
+  const activePreset = PRESETS.find((p) => p.key === currentRange);
+  const buttonLabel = isCustom
+    ? `${currentFrom} — ${currentTo}`
+    : (activePreset?.label ?? "Hari Ini");
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {PRESETS.map((p) => (
-        <button
-          key={p.key}
-          onClick={() => router.push(`/dashboard?range=${p.key}`)}
-          className={`min-h-[44px] rounded-lg px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
-            current === p.key ? "bg-brand text-white" : "bg-white text-ink-soft hover:bg-surface"
-          }`}
-        >
-          {p.label}
-        </button>
-      ))}
+    <div className="relative" ref={ref}>
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-xl border border-hairline bg-white px-3 py-2 text-sm font-medium text-ink shadow-sm transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+      >
+        <CalendarDays size={15} className="shrink-0 text-brand" />
+        <span className="text-sm leading-tight">{buttonLabel}</span>
+        <ChevronDown
+          size={13}
+          className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-2xl border border-hairline bg-white shadow-xl overflow-hidden">
+          {/* Tab header */}
+          <div className="flex border-b border-hairline">
+            <button
+              onClick={() => setMode("preset")}
+              className={`flex-1 py-2 text-xs font-semibold transition ${
+                mode === "preset" ? "bg-brand text-white" : "text-ink-soft hover:bg-surface"
+              }`}
+            >
+              Preset
+            </button>
+            <button
+              onClick={() => setMode("custom")}
+              className={`flex-1 py-2 text-xs font-semibold transition ${
+                mode === "custom" ? "bg-brand text-white" : "text-ink-soft hover:bg-surface"
+              }`}
+            >
+              Pilih Tanggal
+            </button>
+          </div>
+
+          {/* Preset list */}
+          {mode === "preset" && (
+            <div className="py-1">
+              {PRESETS.map((p) => {
+                const active = !isCustom && currentRange === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => applyPreset(p.key)}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition ${
+                      active ? "bg-tint-red" : "hover:bg-surface"
+                    }`}
+                  >
+                    <span className={`text-sm font-medium ${active ? "text-brand" : "text-ink"}`}>
+                      {p.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Custom date picker */}
+          {mode === "custom" && (
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-ink-soft">Dari</label>
+                <input
+                  type="date"
+                  value={from}
+                  max={todayWib()}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-ink-soft">Sampai</label>
+                <input
+                  type="date"
+                  value={to}
+                  min={from}
+                  max={todayWib()}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={applyCustom}
+                  disabled={!from || !to}
+                  className="flex-1 rounded-lg bg-brand py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+                >
+                  Terapkan
+                </button>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg border border-hairline px-3 py-2 text-sm text-ink-soft hover:bg-surface"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -132,6 +132,22 @@ export async function editAkun(id: string, formData: FormData) {
   return { ok: true as const };
 }
 
+export async function toggleOwnerAkun(id: string, isOwner: boolean) {
+  const { supabase, user } = await requireUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+
+  // Jika set sebagai owner, reset akun owner lain dulu
+  if (isOwner) {
+    await supabase.from("akun").update({ is_owner: false }).eq("is_owner", true);
+  }
+
+  const { error } = await supabase.from("akun").update({ is_owner: isOwner }).eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/finance");
+  return { ok: true as const };
+}
+
 export async function deleteAkun(id: string) {
   const { supabase, user } = await requireUser();
   if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
