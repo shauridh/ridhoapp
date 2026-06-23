@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 interface ManualEntryPayload {
   direction: "in" | "out";
   amount: number;
-  kind: "opex" | "capex" | "capital" | "withdrawal";
+  kind: "pemasukan" | "opex" | "capex" | "withdrawal";
   categoryId: string | null;
   note: string;
   entryDate: string;

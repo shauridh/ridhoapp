@@ -1,6 +1,12 @@
 import { toWibDateString, startOfWibDay, endOfWibDay, addDaysWib } from "@/lib/utils/wib";
 
-export type RangePreset = "today" | "this_week" | "this_month" | "this_year" | "all_time";
+export type RangePreset =
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "last_month"
+  | "this_year"
+  | "all_time";
 
 export interface ResolvedRange {
   start: string; // ISO
@@ -75,6 +81,17 @@ export function resolveRange(preset: RangePreset, now: Date = new Date()): Resol
         prevEnd: endOfWibDay(lastDayOfLastMonth),
         days,
         label: "Bulan Ini",
+      };
+    }
+    case "last_month": {
+      const lastMonthDays = new Date(Date.UTC(year, month - 1, 0)).getUTCDate();
+      return {
+        start: startOfWibDay(firstOfLastMonthStr),
+        end: endOfWibDay(lastDayOfLastMonth),
+        prevStart: startOfWibDay(addDaysWib(firstOfLastMonthStr, -lastMonthDays)),
+        prevEnd: endOfWibDay(addDaysWib(firstOfLastMonthStr, -1)),
+        days: lastMonthDays,
+        label: "Bulan Lalu",
       };
     }
     case "this_year": {

@@ -2,17 +2,29 @@
 
 import { useState, useTransition } from "react";
 import { rupiah } from "@/lib/format";
-import { Plus, Check, Wallet, Repeat, HandCoins, Pencil, Trash2, X } from "lucide-react";
+import {
+  Plus,
+  Check,
+  Wallet,
+  Repeat,
+  HandCoins,
+  Pencil,
+  Trash2,
+  X,
+  ArrowLeftRight,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import {
   addAkun,
   editAkun,
   deleteAkun,
   toggleOwnerAkun,
+  transferAntarAkun,
   addOpex,
   toggleOpexActive,
   addPiutang,
@@ -32,6 +44,15 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
   const [tab, setTab] = useState<Tab>("akun");
   const [pending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferFrom, setTransferFrom] = useState("");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferNote, setTransferNote] = useState("");
+  const [transferDate, setTransferDate] = useState(
+    new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" })
+  );
+  const [transferError, setTransferError] = useState<string | null>(null);
   const toast = useToast();
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) =>
@@ -49,23 +70,35 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
 
   return (
     <Card className="space-y-4">
-      <div className="flex gap-2">
-        {tabs.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-                tab === t.key
-                  ? "bg-brand text-white"
-                  : "bg-white text-ink border border-hairline hover:bg-surface"
-              }`}
-            >
-              <Icon size={16} /> {t.label}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                  tab === t.key
+                    ? "bg-brand text-white"
+                    : "bg-white text-ink border border-hairline hover:bg-surface"
+                }`}
+              >
+                <Icon size={16} /> {t.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Tombol Transfer antar akun */}
+        {akun.filter((a) => a.aktif).length >= 2 && (
+          <button
+            onClick={() => setShowTransfer(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-hairline bg-white px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-surface"
+          >
+            <ArrowLeftRight size={15} />
+            Transfer
+          </button>
+        )}
       </div>
 
       {tab === "akun" && (
@@ -314,6 +347,125 @@ export function KeuanganManager({ akun, opex, piutang }: Props) {
           </ul>
         </div>
       )}
+
+      {/* Modal Transfer Antar Akun */}
+      <Modal
+        open={showTransfer}
+        onClose={() => {
+          setShowTransfer(false);
+          setTransferError(null);
+        }}
+        title="Transfer Antar Akun"
+        size="md"
+      >
+        <div className="space-y-3">
+          <Select
+            label="Dari Akun"
+            value={transferFrom}
+            onChange={(e) => setTransferFrom(e.target.value)}
+            required
+          >
+            <option value="">-- Pilih akun asal --</option>
+            {akun
+              .filter((a) => a.aktif)
+              .map((a) => (
+                <option key={a.id} value={a.id} disabled={a.id === transferTo}>
+                  {a.nama} — {rupiah(a.saldo)}
+                </option>
+              ))}
+          </Select>
+
+          <Select
+            label="Ke Akun"
+            value={transferTo}
+            onChange={(e) => setTransferTo(e.target.value)}
+            required
+          >
+            <option value="">-- Pilih akun tujuan --</option>
+            {akun
+              .filter((a) => a.aktif)
+              .map((a) => (
+                <option key={a.id} value={a.id} disabled={a.id === transferFrom}>
+                  {a.nama} — {rupiah(a.saldo)}
+                </option>
+              ))}
+          </Select>
+
+          <Input
+            label="Jumlah (Rp)"
+            type="number"
+            value={transferAmount}
+            onChange={(e) => setTransferAmount(e.target.value)}
+            placeholder="0"
+            money
+            required
+          />
+
+          <Input
+            label="Tanggal"
+            type="date"
+            value={transferDate}
+            onChange={(e) => setTransferDate(e.target.value)}
+          />
+
+          <Input
+            label="Catatan (opsional)"
+            value={transferNote}
+            onChange={(e) => setTransferNote(e.target.value)}
+            placeholder="mis. top up e-wallet, pindah ke rekening"
+          />
+
+          {transferError && (
+            <p className="rounded-lg bg-tint-red px-3 py-2 text-sm text-danger">{transferError}</p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="primary"
+              loading={pending}
+              className="flex-1"
+              onClick={() => {
+                if (!transferFrom || !transferTo || !transferAmount) {
+                  setTransferError("Lengkapi semua field wajib");
+                  return;
+                }
+                setTransferError(null);
+                startTransition(async () => {
+                  const result = await transferAntarAkun({
+                    fromAkunId: transferFrom,
+                    toAkunId: transferTo,
+                    amount: Number(transferAmount),
+                    note: transferNote,
+                    entryDate: transferDate,
+                  });
+                  if (result.ok) {
+                    setShowTransfer(false);
+                    setTransferFrom("");
+                    setTransferTo("");
+                    setTransferAmount("");
+                    setTransferNote("");
+                    setTransferError(null);
+                    toast.show("Transfer berhasil", "success");
+                  } else {
+                    setTransferError(result.error ?? "Gagal");
+                  }
+                });
+              }}
+            >
+              Transfer
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowTransfer(false);
+                setTransferError(null);
+              }}
+            >
+              Batal
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Card>
   );
 }

@@ -8,7 +8,7 @@ import {
 
 const base: ShiftReportData = {
   storeName: "Sabana Fried Chicken",
-  closedAt: "2026-06-12T10:29:00.000Z",
+  closedAt: "2026-06-23T14:30:00.000Z",
   omzet: 1250000,
   transaksi: 48,
   item: 132,
@@ -19,12 +19,18 @@ const base: ShiftReportData = {
   grab: 0,
   shopee: 0,
   lainnya: 0,
-  kasAwal: 200000,
-  kasAkhir: 300000,
+  kasAwal: 350000,
+  kasAkhir: 1150000,
   cashOut: 0,
-  ownerWithdrawal: 0,
+  ownerWithdrawal: 800000,
   selisih: 0,
-  kasRilOwner: 300000,
+  sisaLaci: 350000,
+  cfPemasukan: 0,
+  cfOpex: 50000,
+  cfCapex: 0,
+  cfWithdrawal: 0,
+  saldoRil: 2000000,
+  cfEntries: [{ direction: "out", kind: "opex", amount: 50000, note: "Gas elpiji" }],
   topSellers: [
     { name: "Paket Ayam", qty: 40 },
     { name: "Nasi", qty: 32 },
@@ -90,7 +96,7 @@ describe("renderShiftTemplate", () => {
   it("mengganti placeholder pembayaran dan kas", () => {
     const tpl = "{tunai} {qris} {kasAwal} {kasAkhir} {selisih}";
     const msg = renderShiftTemplate(tpl, base);
-    expect(msg).toBe("Rp 800.000 Rp 450.000 Rp 200.000 Rp 300.000 Rp 0 (cocok)");
+    expect(msg).toBe("Rp 800.000 Rp 450.000 Rp 350.000 Rp 1.150.000 Rp 0 (cocok)");
   });
 
   it("mengganti placeholder item dan terlaris", () => {

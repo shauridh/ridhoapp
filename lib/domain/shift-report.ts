@@ -16,7 +16,19 @@ export interface ShiftReportData {
   cashOut: number;
   ownerWithdrawal: number;
   selisih: number;
-  kasRilOwner: number; // closing_balance setelah owner_withdrawal (sisa di laci)
+  sisaLaci: number;
+  // Cashflow bisnis hari ini
+  cfPemasukan: number;
+  cfOpex: number;
+  cfCapex: number;
+  cfWithdrawal: number;
+  saldoRil: number;
+  cfEntries: Array<{
+    direction: "in" | "out";
+    kind: string;
+    amount: number;
+    note: string;
+  }>;
   topSellers: { name: string; qty: number }[];
 }
 
@@ -70,7 +82,26 @@ export function formatShiftReport(data: ShiftReportData): string {
   if (data.cashOut > 0) lines.push(`Cash Out   : ${rupiah(data.cashOut)}`);
   lines.push(`Ambil Owner: ${rupiah(data.ownerWithdrawal)}`);
   lines.push(`Selisih    : ${selisihLabel(data.selisih)}`);
-  lines.push(`Kas Owner  : ${rupiah(data.kasRilOwner)}`);
+  lines.push(`Sisa Laci  : ${rupiah(data.sisaLaci)}`);
+  if (data.cfPemasukan > 0 || data.cfOpex > 0 || data.cfCapex > 0 || data.cfWithdrawal > 0) {
+    lines.push("");
+    lines.push("-- Cashflow Bisnis --");
+    if (data.cfPemasukan > 0) lines.push(`Pemasukan  : ${rupiah(data.cfPemasukan)}`);
+    if (data.cfOpex > 0) lines.push(`Pengeluaran: ${rupiah(data.cfOpex)}`);
+    if (data.cfCapex > 0) lines.push(`Blj Modal  : ${rupiah(data.cfCapex)}`);
+    if (data.cfWithdrawal > 0) lines.push(`Tarik Owner: ${rupiah(data.cfWithdrawal)}`);
+    // Detail entries
+    const details = data.cfEntries.filter((e) => e.note);
+    if (details.length > 0) {
+      lines.push("");
+      lines.push("Detail:");
+      for (const e of details) {
+        const sign = e.direction === "in" ? "+" : "-";
+        lines.push(`${sign} ${e.note}: ${rupiah(e.amount)}`);
+      }
+    }
+    lines.push(`Saldo Ril  : ${rupiah(data.saldoRil)}`);
+  }
   lines.push("");
   lines.push("-- Terlaris --");
   lines.push(formatTopSellers(data.topSellers));
@@ -106,7 +137,14 @@ Kas Akhir  : {kasAkhir}
 Cash Out   : {cashOut}
 Ambil Owner: {ownerWithdrawal}
 Selisih    : {selisih}
-Kas Owner  : {kasRilOwner}
+Sisa Laci  : {sisaLaci}
+
+-- Cashflow Bisnis --
+Pemasukan  : {cfPemasukan}
+Pengeluaran: {cfOpex}
+Blj Modal  : {cfCapex}
+Tarik Owner: {cfWithdrawal}
+Saldo Ril  : {saldoRil}
 
 -- Terlaris --
 {terlaris}`;
@@ -132,7 +170,12 @@ export function renderShiftTemplate(template: string, data: ShiftReportData): st
     cashOut: rupiah(data.cashOut),
     ownerWithdrawal: rupiah(data.ownerWithdrawal),
     selisih: selisihLabel(data.selisih),
-    kasRilOwner: rupiah(data.kasRilOwner),
+    sisaLaci: rupiah(data.sisaLaci),
+    cfPemasukan: rupiah(data.cfPemasukan),
+    cfOpex: rupiah(data.cfOpex),
+    cfCapex: rupiah(data.cfCapex),
+    cfWithdrawal: rupiah(data.cfWithdrawal),
+    saldoRil: rupiah(data.saldoRil),
     terlaris: formatTopSellers(data.topSellers),
   };
   return template.replace(/\{(\w+)\}/g, (whole, key) => (key in map ? map[key] : whole));

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { topSellers, type SaleLine } from "@/lib/domain/report";
+import { getBusinessCashflow } from "@/lib/data/cashflow";
 import { formatShiftReport, renderShiftTemplate } from "@/lib/domain/shift-report";
 import { sendWa } from "@/lib/wa/getsender";
 import { createClient } from "@/lib/supabase/server";
@@ -154,6 +155,30 @@ async function sendShiftReport(
       }
     }
 
+    const todayWib = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+    const [cashflow, akunResult] = await Promise.all([
+      getBusinessCashflow(todayWib, todayWib),
+      supabase.from("akun").select("saldo_awal, aktif, id"),
+    ]);
+
+    // Saldo ril = saldo_awal + net cashflow per akun (simplified: total saldo awal aktif + net cashflow hari ini)
+    // Untuk akurasi penuh gunakan listAkunWithBalance tapi itu butuh server client
+    // Di sini kita ambil dari cashflow_entries saldo total semua akun aktif
+    const { data: allFlows } = await supabase
+      .from("cashflow_entries")
+      .select("akun_id, direction, amount")
+      .not("akun_id", "is", null);
+    const netPerAkun: Record<string, number> = {};
+    for (const f of allFlows ?? []) {
+      if (!f.akun_id) continue;
+      netPerAkun[f.akun_id] =
+        (netPerAkun[f.akun_id] ?? 0) +
+        (f.direction === "in" ? Number(f.amount) : -Number(f.amount));
+    }
+    const saldoRil = (akunResult.data ?? [])
+      .filter((a) => a.aktif)
+      .reduce((s, a) => s + Number(a.saldo_awal) + (netPerAkun[a.id] ?? 0), 0);
+
     const reportData = {
       storeName: map.get("store_name") ?? "Sabana Fried Chicken",
       closedAt: new Date().toISOString(),
@@ -168,11 +193,17 @@ async function sendShiftReport(
       shopee: totals.shopeeTotal,
       lainnya: totals.otherTotal,
       kasAwal: totals.openingBalance,
-      kasAkhir: totals.closingBalance + totals.ownerWithdrawal, // counted_cash sebelum ambil owner
+      kasAkhir: totals.closingBalance + totals.ownerWithdrawal,
       cashOut: totals.cashOut,
       ownerWithdrawal: totals.ownerWithdrawal,
       selisih: totals.cashDiff,
-      kasRilOwner: totals.closingBalance, // sisa di laci setelah owner ambil
+      sisaLaci: totals.closingBalance,
+      cfPemasukan: cashflow.pemasukanLain,
+      cfOpex: cashflow.totalOpex,
+      cfCapex: cashflow.totalCapex,
+      cfWithdrawal: cashflow.totalWithdrawal,
+      saldoRil,
+      cfEntries: cashflow.entries,
       topSellers: topSellers(lines, 5).map((s) => ({
         name: s.name,
         qty: s.qty,

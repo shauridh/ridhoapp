@@ -158,3 +158,74 @@ export async function deleteAkun(id: string) {
   revalidatePath("/finance");
   return { ok: true as const };
 }
+
+export async function transferAntarAkun(payload: {
+  fromAkunId: string;
+  toAkunId: string;
+  amount: number;
+  note: string;
+  entryDate: string;
+}) {
+  const { supabase, user } = await requireUser();
+  if (!user) return { ok: false as const, error: "Tidak terautentikasi" };
+  if (payload.amount <= 0) return { ok: false as const, error: "Nominal harus > 0" };
+  if (payload.fromAkunId === payload.toAkunId)
+    return { ok: false as const, error: "Akun asal dan tujuan tidak boleh sama" };
+
+  // Cek saldo akun asal cukup
+  const { data: flows } = await supabase
+    .from("cashflow_entries")
+    .select("akun_id, direction, amount")
+    .eq("akun_id", payload.fromAkunId);
+  const { data: akunData } = await supabase
+    .from("akun")
+    .select("saldo_awal")
+    .eq("id", payload.fromAkunId)
+    .single();
+
+  const net = (flows ?? []).reduce(
+    (s, f) => s + (f.direction === "in" ? Number(f.amount) : -Number(f.amount)),
+    Number(akunData?.saldo_awal ?? 0)
+  );
+  if (net < payload.amount) {
+    return {
+      ok: false as const,
+      error: `Saldo tidak cukup. Saldo tersedia: Rp ${net.toLocaleString("id-ID")}`,
+    };
+  }
+
+  // Buat ref_id unik untuk pasangan transfer ini
+  const refId = crypto.randomUUID();
+  const note = payload.note.trim() || "Transfer antar akun";
+
+  const entries = [
+    {
+      entry_date: payload.entryDate,
+      direction: "out" as const,
+      amount: payload.amount,
+      kind: "transfer",
+      source: "transfer",
+      ref_id: refId,
+      note,
+      created_by: user.id,
+      akun_id: payload.fromAkunId,
+    },
+    {
+      entry_date: payload.entryDate,
+      direction: "in" as const,
+      amount: payload.amount,
+      kind: "transfer",
+      source: "transfer",
+      ref_id: refId,
+      note,
+      created_by: user.id,
+      akun_id: payload.toAkunId,
+    },
+  ];
+
+  const { error } = await supabase.from("cashflow_entries").insert(entries);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/finance");
+  return { ok: true as const };
+}

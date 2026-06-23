@@ -20,14 +20,14 @@ interface Props {
   akun: AkunWithBalance[];
 }
 
-interface EntryFormState {
+type EntryFormState = {
   direction: "in" | "out";
   amount: string;
-  kind: "opex" | "capex" | "capital" | "withdrawal";
+  kind: "pemasukan" | "opex" | "capex" | "withdrawal";
   note: string;
   entryDate: string;
   akunId: string;
-}
+};
 
 function defaultForm(): EntryFormState {
   return {
@@ -41,7 +41,6 @@ function defaultForm(): EntryFormState {
 }
 
 export function ManualEntryForm({ categories: _categories, akun }: Props) {
-  // eslint-disable-line @typescript-eslint/no-unused-vars
   const [open, setOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CashflowEntryRow | null>(null);
   const [form, setForm] = useState<EntryFormState>(defaultForm());
@@ -85,7 +84,7 @@ export function ManualEntryForm({ categories: _categories, akun }: Props) {
     const payload = {
       direction: form.direction,
       amount: Number(form.amount),
-      kind: form.direction === "in" ? ("capital" as const) : form.kind,
+      kind: form.direction === "in" ? ("pemasukan" as const) : form.kind,
       categoryId: null,
       note: form.note,
       entryDate: form.entryDate,
@@ -131,6 +130,19 @@ export function ManualEntryForm({ categories: _categories, akun }: Props) {
               Keluar
             </Button>
           </div>
+
+          {form.direction === "in" && (
+            <Select
+              label="Jenis pemasukan"
+              value={form.kind}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, kind: e.target.value as EntryFormState["kind"] }))
+              }
+            >
+              <option value="pemasukan">Pemasukan Lain</option>
+              <option value="withdrawal">Pengembalian Dana</option>
+            </Select>
+          )}
 
           {form.direction === "out" && (
             <Select
@@ -235,7 +247,7 @@ export function EntryActions({ entry, akun }: EntryActionsProps) {
       const result = await updateManualEntry(entry.id, {
         direction: form.direction,
         amount: Number(form.amount),
-        kind: form.direction === "in" ? "capital" : form.kind,
+        kind: form.direction === "in" ? "pemasukan" : form.kind,
         categoryId: null,
         note: form.note,
         entryDate: form.entryDate,
